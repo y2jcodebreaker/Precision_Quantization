@@ -1,7 +1,7 @@
-# Quantization as a Mechanistic Probe — Code & Data
+# The Misallocation of Precision in Quantized Language Models — Code & Data
 
 Reproducibility repository for the paper
-**"Quantization as a Mechanistic Probe: Hessian Sensitivity Misidentifies Functionally Critical Layers"**
+**"The Misallocation of Precision in Quantized Language Models"**
 (Anonymous submission, EMNLP 2026 / ACL Rolling Review May 2026 cycle.)
 
 This repo contains:

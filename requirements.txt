@@ -1,4 +1,4 @@
-# Pinned dependencies for "Quantization as a Mechanistic Probe"
+# Pinned dependencies for "The Misallocation of Precision in Quantized Language Models"
 # Tested on Python 3.10, CUDA 12.1, NVIDIA A100 80GB.
 
 # Core ML stack
