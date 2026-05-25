@@ -1,0 +1,27 @@
+# Pinned dependencies for "Quantization as a Mechanistic Probe"
+# Tested on Python 3.10, CUDA 12.1, NVIDIA A100 80GB.
+
+# Core ML stack
+torch>=2.4.0,<3.0
+transformers>=4.45.0,<6.0
+accelerate>=0.34.0
+bitsandbytes>=0.43.0
+datasets>=2.18.0
+huggingface_hub>=0.24.0
+
+# Mechanistic interpretability (used by some optional probes)
+transformer_lens>=2.0.0
+
+# Quantization baselines
+auto-gptq>=0.7.0
+# autoawq is optional; documented incompatibility with transformers >= 5 noted in paper
+
+# Evaluation
+lm-eval>=0.4.3
+
+# Statistics + plotting (no GPU needed)
+numpy>=1.24.0
+scipy>=1.11.0
+statsmodels>=0.14.0
+matplotlib>=3.7.0
+tqdm>=4.65.0

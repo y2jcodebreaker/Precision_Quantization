@@ -1,0 +1,481 @@
+{
+  "config": {
+    "model": "meta-llama/Llama-3.1-8B-Instruct",
+    "num_examples_per_dataset": 500,
+    "seed": 42,
+    "layer_order": [
+      [
+        "mlp",
+        6
+      ],
+      [
+        "mlp",
+        7
+      ],
+      [
+        "attention",
+        13
+      ],
+      [
+        "attention",
+        14
+      ],
+      [
+        "mlp",
+        1
+      ],
+      [
+        "mlp",
+        31
+      ]
+    ],
+    "layer_order_rationale": [
+      "MLP L6: ARC-optimal, highest cross-task spillover",
+      "MLP L7: ARC-optimal companion",
+      "Attn L13: GSM8K arithmetic bottleneck",
+      "Attn L14: GSM8K arithmetic companion",
+      "MLP L1: MATH bookend (early features)",
+      "MLP L31: MATH bookend (output formation)"
+    ]
+  },
+  "results": {
+    "layers_0": {
+      "num_layers": 0,
+      "layers_patched": [],
+      "patch_info": null,
+      "gsm8k": {
+        "accuracy": 0.776,
+        "correct": 388,
+        "total": 500
+      },
+      "arc": {
+        "accuracy": 0.748,
+        "correct": 374,
+        "total": 500
+      },
+      "math": {
+        "accuracy": 0.536,
+        "correct": 268,
+        "total": 500
+      },
+      "memory_mb": {
+        "allocated_mb": 5449.19677734375,
+        "reserved_mb": 7334.0,
+        "peak_mb": 6994.25146484375
+      }
+    },
+    "layers_1": {
+      "num_layers": 1,
+      "layers_patched": [
+        [
+          "mlp",
+          6
+        ]
+      ],
+      "patch_info": {
+        "fp16_param_count": 176160768,
+        "overhead_mb": 252.0
+      },
+      "gsm8k": {
+        "accuracy": 0.786,
+        "correct": 393,
+        "total": 500
+      },
+      "arc": {
+        "accuracy": 0.768,
+        "correct": 384,
+        "total": 500
+      },
+      "math": {
+        "accuracy": 0.514,
+        "correct": 257,
+        "total": 500
+      },
+      "memory_mb": {
+        "allocated_mb": 5699.89990234375,
+        "reserved_mb": 13584.0,
+        "peak_mb": 10005.13427734375
+      }
+    },
+    "layers_2": {
+      "num_layers": 2,
+      "layers_patched": [
+        [
+          "mlp",
+          6
+        ],
+        [
+          "mlp",
+          7
+        ]
+      ],
+      "patch_info": {
+        "fp16_param_count": 352321536,
+        "overhead_mb": 504.0
+      },
+      "gsm8k": {
+        "accuracy": 0.786,
+        "correct": 393,
+        "total": 500
+      },
+      "arc": {
+        "accuracy": 0.768,
+        "correct": 384,
+        "total": 500
+      },
+      "math": {
+        "accuracy": 0.532,
+        "correct": 266,
+        "total": 500
+      },
+      "memory_mb": {
+        "allocated_mb": 5947.35302734375,
+        "reserved_mb": 13584.0,
+        "peak_mb": 10253.14990234375
+      }
+    },
+    "layers_3": {
+      "num_layers": 3,
+      "layers_patched": [
+        [
+          "mlp",
+          6
+        ],
+        [
+          "mlp",
+          7
+        ],
+        [
+          "attention",
+          13
+        ]
+      ],
+      "patch_info": {
+        "fp16_param_count": 394264576,
+        "overhead_mb": 564.0
+      },
+      "gsm8k": {
+        "accuracy": 0.804,
+        "correct": 402,
+        "total": 500
+      },
+      "arc": {
+        "accuracy": 0.766,
+        "correct": 383,
+        "total": 500
+      },
+      "math": {
+        "accuracy": 0.532,
+        "correct": 266,
+        "total": 500
+      },
+      "memory_mb": {
+        "allocated_mb": 6008.21044921875,
+        "reserved_mb": 13592.0,
+        "peak_mb": 10245.93115234375
+      }
+    },
+    "layers_4": {
+      "num_layers": 4,
+      "layers_patched": [
+        [
+          "mlp",
+          6
+        ],
+        [
+          "mlp",
+          7
+        ],
+        [
+          "attention",
+          13
+        ],
+        [
+          "attention",
+          14
+        ]
+      ],
+      "patch_info": {
+        "fp16_param_count": 436207616,
+        "overhead_mb": 624.0
+      },
+      "gsm8k": {
+        "accuracy": 0.812,
+        "correct": 406,
+        "total": 500
+      },
+      "arc": {
+        "accuracy": 0.768,
+        "correct": 384,
+        "total": 500
+      },
+      "math": {
+        "accuracy": 0.528,
+        "correct": 264,
+        "total": 500
+      },
+      "memory_mb": {
+        "allocated_mb": 6064.06787109375,
+        "reserved_mb": 13594.0,
+        "peak_mb": 10303.87353515625
+      }
+    },
+    "layers_5": {
+      "num_layers": 5,
+      "layers_patched": [
+        [
+          "mlp",
+          6
+        ],
+        [
+          "mlp",
+          7
+        ],
+        [
+          "attention",
+          13
+        ],
+        [
+          "attention",
+          14
+        ],
+        [
+          "mlp",
+          1
+        ]
+      ],
+      "patch_info": {
+        "fp16_param_count": 612368384,
+        "overhead_mb": 876.0
+      },
+      "gsm8k": {
+        "accuracy": 0.78,
+        "correct": 390,
+        "total": 500
+      },
+      "arc": {
+        "accuracy": 0.768,
+        "correct": 384,
+        "total": 500
+      },
+      "math": {
+        "accuracy": 0.53,
+        "correct": 265,
+        "total": 500
+      },
+      "memory_mb": {
+        "allocated_mb": 6316.39599609375,
+        "reserved_mb": 13598.0,
+        "peak_mb": 10618.73876953125
+      }
+    },
+    "layers_6": {
+      "num_layers": 6,
+      "layers_patched": [
+        [
+          "mlp",
+          6
+        ],
+        [
+          "mlp",
+          7
+        ],
+        [
+          "attention",
+          13
+        ],
+        [
+          "attention",
+          14
+        ],
+        [
+          "mlp",
+          1
+        ],
+        [
+          "mlp",
+          31
+        ]
+      ],
+      "patch_info": {
+        "fp16_param_count": 788529152,
+        "overhead_mb": 1128.0
+      },
+      "gsm8k": {
+        "accuracy": 0.794,
+        "correct": 397,
+        "total": 500
+      },
+      "arc": {
+        "accuracy": 0.778,
+        "correct": 389,
+        "total": 500
+      },
+      "math": {
+        "accuracy": 0.548,
+        "correct": 274,
+        "total": 500
+      },
+      "memory_mb": {
+        "allocated_mb": 6563.72412109375,
+        "reserved_mb": 13594.0,
+        "peak_mb": 10823.60205078125
+      }
+    }
+  },
+  "diminishing_returns_curve": [
+    {
+      "num_layers": 0,
+      "layers": [],
+      "gsm8k": 0.776,
+      "arc": 0.748,
+      "math": 0.536,
+      "average": 0.6866666666666666,
+      "overhead_mb": 0
+    },
+    {
+      "num_layers": 1,
+      "layers": [
+        [
+          "mlp",
+          6
+        ]
+      ],
+      "gsm8k": 0.786,
+      "arc": 0.768,
+      "math": 0.514,
+      "average": 0.6893333333333334,
+      "overhead_mb": 252.0
+    },
+    {
+      "num_layers": 2,
+      "layers": [
+        [
+          "mlp",
+          6
+        ],
+        [
+          "mlp",
+          7
+        ]
+      ],
+      "gsm8k": 0.786,
+      "arc": 0.768,
+      "math": 0.532,
+      "average": 0.6953333333333335,
+      "overhead_mb": 504.0
+    },
+    {
+      "num_layers": 3,
+      "layers": [
+        [
+          "mlp",
+          6
+        ],
+        [
+          "mlp",
+          7
+        ],
+        [
+          "attention",
+          13
+        ]
+      ],
+      "gsm8k": 0.804,
+      "arc": 0.766,
+      "math": 0.532,
+      "average": 0.7006666666666668,
+      "overhead_mb": 564.0
+    },
+    {
+      "num_layers": 4,
+      "layers": [
+        [
+          "mlp",
+          6
+        ],
+        [
+          "mlp",
+          7
+        ],
+        [
+          "attention",
+          13
+        ],
+        [
+          "attention",
+          14
+        ]
+      ],
+      "gsm8k": 0.812,
+      "arc": 0.768,
+      "math": 0.528,
+      "average": 0.7026666666666667,
+      "overhead_mb": 624.0
+    },
+    {
+      "num_layers": 5,
+      "layers": [
+        [
+          "mlp",
+          6
+        ],
+        [
+          "mlp",
+          7
+        ],
+        [
+          "attention",
+          13
+        ],
+        [
+          "attention",
+          14
+        ],
+        [
+          "mlp",
+          1
+        ]
+      ],
+      "gsm8k": 0.78,
+      "arc": 0.768,
+      "math": 0.53,
+      "average": 0.6926666666666668,
+      "overhead_mb": 876.0
+    },
+    {
+      "num_layers": 6,
+      "layers": [
+        [
+          "mlp",
+          6
+        ],
+        [
+          "mlp",
+          7
+        ],
+        [
+          "attention",
+          13
+        ],
+        [
+          "attention",
+          14
+        ],
+        [
+          "mlp",
+          1
+        ],
+        [
+          "mlp",
+          31
+        ]
+      ],
+      "gsm8k": 0.794,
+      "arc": 0.778,
+      "math": 0.548,
+      "average": 0.7066666666666667,
+      "overhead_mb": 1128.0
+    }
+  ]
+}

@@ -1,0 +1,136 @@
+{
+  "config": {
+    "model": "meta-llama/Llama-3.1-8B-Instruct",
+    "target_layers": [
+      2,
+      5,
+      8,
+      10,
+      15,
+      16,
+      20,
+      27
+    ],
+    "attn_projections": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj"
+    ]
+  },
+  "summary": {
+    "total_flipped": 58,
+    "recovery_count": 26,
+    "recovery_rate": 0.4482758620689655,
+    "still_failed": 32
+  },
+  "recovered_indices": [
+    2,
+    39,
+    43,
+    125,
+    164,
+    186,
+    244,
+    384,
+    389,
+    493,
+    500,
+    527,
+    541,
+    552,
+    587,
+    610,
+    627,
+    656,
+    674,
+    677,
+    691,
+    793,
+    815,
+    857,
+    931,
+    990
+  ],
+  "still_failed_indices": [
+    17,
+    24,
+    157,
+    165,
+    175,
+    192,
+    201,
+    259,
+    314,
+    331,
+    357,
+    383,
+    397,
+    413,
+    415,
+    420,
+    423,
+    434,
+    450,
+    566,
+    607,
+    609,
+    687,
+    777,
+    798,
+    835,
+    878,
+    916,
+    932,
+    958,
+    989,
+    996
+  ],
+  "qualitative_samples": [
+    {
+      "index": 2,
+      "question": "Josh decides to try flipping a house.  He buys a house for $80,000 and then puts in $50,000 in repairs.  This increased the value of the house by 150%.  How much profit did he make?",
+      "ground_truth": "70000",
+      "failed_4bit_answer": "195000",
+      "hybrid_answer": "70000",
+      "recovered": true,
+      "hybrid_response": "## Step 1: Calculate the increased value of the house after repairs.\nThe value of the house increased by 150% after repairs, which means the new value is 150% of the original value plus the original value. Let's denote the original value as $80,000. The increased value is 150% of $80,000 plus $80,00..."
+    },
+    {
+      "index": 17,
+      "question": "Jill gets paid $20 per hour to teach and $30 to be a cheerleading coach. If she works 50 weeks a year, 35 hours a week as a teacher and 15 hours a week as a coach, what's her annual salary?",
+      "ground_truth": "57500",
+      "failed_4bit_answer": "57250",
+      "hybrid_answer": "57250",
+      "recovered": false,
+      "hybrid_response": "## Step 1: Calculate the total hours Jill works as a teacher in a year.\nJill works 35 hours a week as a teacher for 50 weeks a year. So, the total hours she works as a teacher in a year is 35 * 50 = 1750 hours.\n\n## Step 2: Calculate the total hours Jill works as a coach in a year.\nJill works 15 hour..."
+    },
+    {
+      "index": 24,
+      "question": "Kyle bought last year's best-selling book for $19.50. This is with a 25% discount from the original price. What was the original price of the book?",
+      "ground_truth": "26",
+      "failed_4bit_answer": "24.375",
+      "hybrid_answer": "24.375",
+      "recovered": false,
+      "hybrid_response": "## Step 1: Determine the discount amount\nTo find the original price, we first need to determine the amount of the discount. Since the book was bought with a 25% discount, we can calculate the discount amount by multiplying the discounted price by the discount percentage.\n\n## Step 2: Calculate the di..."
+    },
+    {
+      "index": 39,
+      "question": "Dana can run at a rate of speed four times faster than she can walk, but she can skip at a rate of speed that is half as fast as she can run. If she can skip at 3 miles per hour, how many miles can sh...",
+      "ground_truth": "18",
+      "failed_4bit_answer": "27",
+      "hybrid_answer": "18",
+      "recovered": true,
+      "hybrid_response": "## Step 1: Determine Dana's running speed\nSince Dana can skip at a rate of speed that is half as fast as she can run, and she can skip at 3 miles per hour, her running speed is twice her skipping speed, which is 2 * 3 = 6 miles per hour.\n\n## Step 2: Determine Dana's walking speed\nDana can run at a r..."
+    },
+    {
+      "index": 43,
+      "question": "According to its nutritional info, a bag of chips has 250 calories per serving. If a 300g bag has 5 servings, how many grams can you eat if your daily calorie target is 2000 and you have already consu...",
+      "ground_truth": "48",
+      "failed_4bit_answer": "240",
+      "hybrid_answer": "48",
+      "recovered": true,
+      "hybrid_response": "## Step 1: Calculate the total calories in the entire bag of chips.\nTo find the total calories in the entire bag, we need to multiply the calories per serving by the number of servings. total_calories = calories_per_serving * number_of_servings = 250 * 5 = 1250.\n\n## Step 2: Determine the remaining c..."
+    }
+  ]
+}

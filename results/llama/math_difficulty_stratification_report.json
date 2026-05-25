@@ -1,0 +1,173 @@
+{
+  "config": {
+    "model": "meta-llama/Llama-3.1-8B-Instruct",
+    "num_examples_per_tier": 500,
+    "seed": 42,
+    "tiers": {
+      "easy": [
+        1,
+        2,
+        3
+      ],
+      "hard": [
+        4,
+        5
+      ]
+    },
+    "attn_fp16_layers": [
+      13,
+      14
+    ],
+    "mlp_fp16_layers": [
+      1,
+      6,
+      7,
+      31
+    ]
+  },
+  "tier_results": {
+    "tier_easy": {
+      "tier": "easy",
+      "fp16": {
+        "accuracy": 0.564,
+        "correct": 282,
+        "total": 500,
+        "wall_time_s": 472.97,
+        "total_generated_tokens": 256000,
+        "throughput_tok_per_s": 541.26
+      },
+      "int4": {
+        "accuracy": 0.53,
+        "correct": 265,
+        "total": 500,
+        "wall_time_s": 549.08,
+        "total_generated_tokens": 256000,
+        "throughput_tok_per_s": 466.23
+      },
+      "surgical": {
+        "accuracy": 0.546,
+        "correct": 273,
+        "total": 500,
+        "wall_time_s": 541.66,
+        "total_generated_tokens": 256000,
+        "throughput_tok_per_s": 472.62
+      }
+    },
+    "tier_hard": {
+      "tier": "hard",
+      "fp16": {
+        "accuracy": 0.232,
+        "correct": 116,
+        "total": 500,
+        "wall_time_s": 534.1,
+        "total_generated_tokens": 256000,
+        "throughput_tok_per_s": 479.31
+      },
+      "int4": {
+        "accuracy": 0.218,
+        "correct": 109,
+        "total": 500,
+        "wall_time_s": 610.46,
+        "total_generated_tokens": 256000,
+        "throughput_tok_per_s": 419.36
+      },
+      "surgical": {
+        "accuracy": 0.22,
+        "correct": 110,
+        "total": 500,
+        "wall_time_s": 603.44,
+        "total_generated_tokens": 256000,
+        "throughput_tok_per_s": 424.24
+      }
+    }
+  },
+  "tier_summary": [
+    {
+      "tier": "easy",
+      "tier_label": "Easy (L1-3)",
+      "levels": [
+        1,
+        2,
+        3
+      ],
+      "n": 500,
+      "fp16_accuracy": 0.564,
+      "int4_accuracy": 0.53,
+      "surgical_accuracy": 0.546,
+      "gap_pp": 3.4,
+      "surgical_gain_pp": 1.6,
+      "gap_recovery_pct": 47.1,
+      "fp16_vs_int4_p": 0.086276,
+      "fp16_vs_int4_sig": false,
+      "int4_vs_surg_p": 0.374003,
+      "int4_vs_surg_sig": false
+    },
+    {
+      "tier": "hard",
+      "tier_label": "Hard (L4-5)",
+      "levels": [
+        4,
+        5
+      ],
+      "n": 500,
+      "fp16_accuracy": 0.232,
+      "int4_accuracy": 0.218,
+      "surgical_accuracy": 0.22,
+      "gap_pp": 1.4,
+      "surgical_gain_pp": 0.2,
+      "gap_recovery_pct": 14.3,
+      "fp16_vs_int4_p": 0.476422,
+      "fp16_vs_int4_sig": false,
+      "int4_vs_surg_p": 1.0,
+      "int4_vs_surg_sig": false
+    }
+  ],
+  "statistical_tests": {
+    "tier_easy": {
+      "fp16_vs_int4": {
+        "b_count": 52,
+        "c_count": 35,
+        "chi2": 2.9425,
+        "p_value": 0.086276,
+        "significant_at_0.05": false
+      },
+      "fp16_vs_surgical": {
+        "b_count": 48,
+        "c_count": 39,
+        "chi2": 0.7356,
+        "p_value": 0.391064,
+        "significant_at_0.05": false
+      },
+      "int4_vs_surgical": {
+        "b_count": 27,
+        "c_count": 35,
+        "chi2": 0.7903,
+        "p_value": 0.374003,
+        "significant_at_0.05": false
+      }
+    },
+    "tier_hard": {
+      "fp16_vs_int4": {
+        "b_count": 39,
+        "c_count": 32,
+        "chi2": 0.507,
+        "p_value": 0.476422,
+        "significant_at_0.05": false
+      },
+      "fp16_vs_surgical": {
+        "b_count": 38,
+        "c_count": 32,
+        "chi2": 0.3571,
+        "p_value": 0.550097,
+        "significant_at_0.05": false
+      },
+      "int4_vs_surgical": {
+        "b_count": 31,
+        "c_count": 32,
+        "chi2": 0.0,
+        "p_value": 1.0,
+        "significant_at_0.05": false
+      }
+    }
+  }
+}

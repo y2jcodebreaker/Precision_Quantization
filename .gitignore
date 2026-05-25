@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Virtual envs
+venv/
+.venv/
+env/
+.plotenv/
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# HF cache (local)
+.cache/
+hf_cache/
+
+# Run artifacts (keep results/ tracked; ignore checkpoints + downloads)
+*_checkpoint.json
+*_ckpt.json
+outputs/
+runs/
+wandb/
+
+# Secrets — must never be committed
+.env
+.env.*
+*.pem
+*.key
+hf_token.txt

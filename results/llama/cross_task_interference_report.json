@@ -1,0 +1,184 @@
+{
+  "config": {
+    "model": "meta-llama/Llama-3.1-8B-Instruct",
+    "num_examples_per_dataset": 500,
+    "seed": 42,
+    "patches": {
+      "gsm8k_optimal": {
+        "component": "attention",
+        "layers": [
+          13,
+          14
+        ]
+      },
+      "arc_optimal": {
+        "component": "mlp",
+        "layers": [
+          6,
+          7
+        ]
+      },
+      "math_optimal": {
+        "component": "mlp",
+        "layers": [
+          1,
+          31
+        ]
+      }
+    }
+  },
+  "baselines": {
+    "gsm8k": {
+      "fp16_accuracy": 0.8,
+      "int4_accuracy": 0.776,
+      "accuracy_drop": 0.02400000000000002
+    },
+    "arc": {
+      "fp16_accuracy": 0.792,
+      "int4_accuracy": 0.748,
+      "accuracy_drop": 0.04400000000000004
+    },
+    "math": {
+      "fp16_accuracy": 0.552,
+      "int4_accuracy": 0.538,
+      "accuracy_drop": 0.014000000000000012
+    }
+  },
+  "flipped_counts": {
+    "gsm8k": 48,
+    "arc": 36,
+    "math": 47
+  },
+  "interference_matrix": {
+    "4bit_baseline": {
+      "gsm8k": {
+        "recovery_rate": 0.08333333333333333,
+        "recovered_count": 4,
+        "flipped_total": 48,
+        "full_accuracy": 0.776,
+        "full_correct": 388,
+        "full_total": 500
+      },
+      "arc": {
+        "recovery_rate": 0.0,
+        "recovered_count": 0,
+        "flipped_total": 36,
+        "full_accuracy": 0.748,
+        "full_correct": 374,
+        "full_total": 500
+      },
+      "math": {
+        "recovery_rate": 0.0425531914893617,
+        "recovered_count": 2,
+        "flipped_total": 47,
+        "full_accuracy": 0.536,
+        "full_correct": 268,
+        "full_total": 500
+      }
+    },
+    "gsm8k_optimal": {
+      "gsm8k": {
+        "recovery_rate": 0.5208333333333334,
+        "recovered_count": 25,
+        "flipped_total": 48,
+        "full_accuracy": 0.8,
+        "full_correct": 400,
+        "full_total": 500
+      },
+      "arc": {
+        "recovery_rate": 0.08333333333333333,
+        "recovered_count": 3,
+        "flipped_total": 36,
+        "full_accuracy": 0.75,
+        "full_correct": 375,
+        "full_total": 500
+      },
+      "math": {
+        "recovery_rate": 0.14893617021276595,
+        "recovered_count": 7,
+        "flipped_total": 47,
+        "full_accuracy": 0.532,
+        "full_correct": 266,
+        "full_total": 500
+      }
+    },
+    "arc_optimal": {
+      "gsm8k": {
+        "recovery_rate": 0.4791666666666667,
+        "recovered_count": 23,
+        "flipped_total": 48,
+        "full_accuracy": 0.786,
+        "full_correct": 393,
+        "full_total": 500
+      },
+      "arc": {
+        "recovery_rate": 0.3611111111111111,
+        "recovered_count": 13,
+        "flipped_total": 36,
+        "full_accuracy": 0.768,
+        "full_correct": 384,
+        "full_total": 500
+      },
+      "math": {
+        "recovery_rate": 0.3404255319148936,
+        "recovered_count": 16,
+        "flipped_total": 47,
+        "full_accuracy": 0.532,
+        "full_correct": 266,
+        "full_total": 500
+      }
+    },
+    "math_optimal": {
+      "gsm8k": {
+        "recovery_rate": 0.4583333333333333,
+        "recovered_count": 22,
+        "flipped_total": 48,
+        "full_accuracy": 0.772,
+        "full_correct": 386,
+        "full_total": 500
+      },
+      "arc": {
+        "recovery_rate": 0.1111111111111111,
+        "recovered_count": 4,
+        "flipped_total": 36,
+        "full_accuracy": 0.746,
+        "full_correct": 373,
+        "full_total": 500
+      },
+      "math": {
+        "recovery_rate": 0.3829787234042553,
+        "recovered_count": 18,
+        "flipped_total": 47,
+        "full_accuracy": 0.54,
+        "full_correct": 270,
+        "full_total": 500
+      }
+    },
+    "all_combined": {
+      "gsm8k": {
+        "recovery_rate": 0.7083333333333334,
+        "recovered_count": 34,
+        "flipped_total": 48,
+        "full_accuracy": 0.794,
+        "full_correct": 397,
+        "full_total": 500
+      },
+      "arc": {
+        "recovery_rate": 0.5277777777777778,
+        "recovered_count": 19,
+        "flipped_total": 36,
+        "full_accuracy": 0.778,
+        "full_correct": 389,
+        "full_total": 500
+      },
+      "math": {
+        "recovery_rate": 0.5319148936170213,
+        "recovered_count": 25,
+        "flipped_total": 47,
+        "full_accuracy": 0.548,
+        "full_correct": 274,
+        "full_total": 500
+      }
+    }
+  }
+}

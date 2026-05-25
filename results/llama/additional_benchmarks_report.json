@@ -1,0 +1,299 @@
+{
+  "experiment": "Phase 19: Additional Benchmarks (HellaSwag + MMLU)",
+  "purpose": "Test attention/MLP task-selectivity beyond math-adjacent benchmarks",
+  "model": "meta-llama/Llama-3.1-8B-Instruct",
+  "num_examples_per_dataset": 500,
+  "mmlu_subjects": [
+    "abstract_algebra",
+    "anatomy",
+    "college_chemistry",
+    "high_school_us_history",
+    "philosophy",
+    "professional_law"
+  ],
+  "baselines": {
+    "hellaswag_fp16": {
+      "accuracy": 0.65,
+      "n": 500
+    },
+    "mmlu_fp16": {
+      "accuracy": 0.5562,
+      "n": 498
+    },
+    "hellaswag_4bit": {
+      "accuracy": 0.64,
+      "n": 500
+    },
+    "mmlu_4bit": {
+      "accuracy": 0.5341,
+      "n": 498
+    }
+  },
+  "sweep_results": {
+    "L13_attention": {
+      "layer": 13,
+      "component": "attention",
+      "datasets": {
+        "hellaswag": {
+          "accuracy": 0.634,
+          "improvement_pp_vs_4bit": -0.6,
+          "improvement_pp_vs_fp16": -1.6
+        },
+        "mmlu": {
+          "accuracy": 0.5462,
+          "improvement_pp_vs_4bit": 1.21,
+          "improvement_pp_vs_fp16": -1.0
+        }
+      }
+    },
+    "L14_attention": {
+      "layer": 14,
+      "component": "attention",
+      "datasets": {
+        "hellaswag": {
+          "accuracy": 0.624,
+          "improvement_pp_vs_4bit": -1.6,
+          "improvement_pp_vs_fp16": -2.6
+        },
+        "mmlu": {
+          "accuracy": 0.5301,
+          "improvement_pp_vs_4bit": -0.4,
+          "improvement_pp_vs_fp16": -2.61
+        }
+      }
+    },
+    "L0_attention": {
+      "layer": 0,
+      "component": "attention",
+      "datasets": {
+        "hellaswag": {
+          "accuracy": 0.616,
+          "improvement_pp_vs_4bit": -2.4,
+          "improvement_pp_vs_fp16": -3.4
+        },
+        "mmlu": {
+          "accuracy": 0.5281,
+          "improvement_pp_vs_4bit": -0.6,
+          "improvement_pp_vs_fp16": -2.81
+        }
+      }
+    },
+    "L10_attention": {
+      "layer": 10,
+      "component": "attention",
+      "datasets": {
+        "hellaswag": {
+          "accuracy": 0.632,
+          "improvement_pp_vs_4bit": -0.8,
+          "improvement_pp_vs_fp16": -1.8
+        },
+        "mmlu": {
+          "accuracy": 0.5442,
+          "improvement_pp_vs_4bit": 1.01,
+          "improvement_pp_vs_fp16": -1.2
+        }
+      }
+    },
+    "L20_attention": {
+      "layer": 20,
+      "component": "attention",
+      "datasets": {
+        "hellaswag": {
+          "accuracy": 0.628,
+          "improvement_pp_vs_4bit": -1.2,
+          "improvement_pp_vs_fp16": -2.2
+        },
+        "mmlu": {
+          "accuracy": 0.5402,
+          "improvement_pp_vs_4bit": 0.61,
+          "improvement_pp_vs_fp16": -1.6
+        }
+      }
+    },
+    "L25_attention": {
+      "layer": 25,
+      "component": "attention",
+      "datasets": {
+        "hellaswag": {
+          "accuracy": 0.628,
+          "improvement_pp_vs_4bit": -1.2,
+          "improvement_pp_vs_fp16": -2.2
+        },
+        "mmlu": {
+          "accuracy": 0.5341,
+          "improvement_pp_vs_4bit": 0.0,
+          "improvement_pp_vs_fp16": -2.21
+        }
+      }
+    },
+    "L1_mlp": {
+      "layer": 1,
+      "component": "mlp",
+      "datasets": {
+        "hellaswag": {
+          "accuracy": 0.606,
+          "improvement_pp_vs_4bit": -3.4,
+          "improvement_pp_vs_fp16": -4.4
+        },
+        "mmlu": {
+          "accuracy": 0.5341,
+          "improvement_pp_vs_4bit": 0.0,
+          "improvement_pp_vs_fp16": -2.21
+        }
+      }
+    },
+    "L6_mlp": {
+      "layer": 6,
+      "component": "mlp",
+      "datasets": {
+        "hellaswag": {
+          "accuracy": 0.612,
+          "improvement_pp_vs_4bit": -2.8,
+          "improvement_pp_vs_fp16": -3.8
+        },
+        "mmlu": {
+          "accuracy": 0.5301,
+          "improvement_pp_vs_4bit": -0.4,
+          "improvement_pp_vs_fp16": -2.61
+        }
+      }
+    },
+    "L7_mlp": {
+      "layer": 7,
+      "component": "mlp",
+      "datasets": {
+        "hellaswag": {
+          "accuracy": 0.62,
+          "improvement_pp_vs_4bit": -2.0,
+          "improvement_pp_vs_fp16": -3.0
+        },
+        "mmlu": {
+          "accuracy": 0.5341,
+          "improvement_pp_vs_4bit": 0.0,
+          "improvement_pp_vs_fp16": -2.21
+        }
+      }
+    },
+    "L31_mlp": {
+      "layer": 31,
+      "component": "mlp",
+      "datasets": {
+        "hellaswag": {
+          "accuracy": 0.622,
+          "improvement_pp_vs_4bit": -1.8,
+          "improvement_pp_vs_fp16": -2.8
+        },
+        "mmlu": {
+          "accuracy": 0.5261,
+          "improvement_pp_vs_4bit": -0.8,
+          "improvement_pp_vs_fp16": -3.01
+        }
+      }
+    },
+    "L3_mlp": {
+      "layer": 3,
+      "component": "mlp",
+      "datasets": {
+        "hellaswag": {
+          "accuracy": 0.63,
+          "improvement_pp_vs_4bit": -1.0,
+          "improvement_pp_vs_fp16": -2.0
+        },
+        "mmlu": {
+          "accuracy": 0.5341,
+          "improvement_pp_vs_4bit": 0.0,
+          "improvement_pp_vs_fp16": -2.21
+        }
+      }
+    },
+    "L15_mlp": {
+      "layer": 15,
+      "component": "mlp",
+      "datasets": {
+        "hellaswag": {
+          "accuracy": 0.63,
+          "improvement_pp_vs_4bit": -1.0,
+          "improvement_pp_vs_fp16": -2.0
+        },
+        "mmlu": {
+          "accuracy": 0.5341,
+          "improvement_pp_vs_4bit": 0.0,
+          "improvement_pp_vs_fp16": -2.21
+        }
+      }
+    }
+  },
+  "analysis": {
+    "hellaswag_top_layers": [
+      {
+        "layer": "L13_attention",
+        "improvement_pp": -0.6
+      },
+      {
+        "layer": "L10_attention",
+        "improvement_pp": -0.8
+      },
+      {
+        "layer": "L3_mlp",
+        "improvement_pp": -1.0
+      },
+      {
+        "layer": "L15_mlp",
+        "improvement_pp": -1.0
+      },
+      {
+        "layer": "L20_attention",
+        "improvement_pp": -1.2
+      },
+      {
+        "layer": "L25_attention",
+        "improvement_pp": -1.2
+      }
+    ],
+    "mmlu_top_layers": [
+      {
+        "layer": "L13_attention",
+        "improvement_pp": 1.21
+      },
+      {
+        "layer": "L10_attention",
+        "improvement_pp": 1.01
+      },
+      {
+        "layer": "L20_attention",
+        "improvement_pp": 0.61
+      },
+      {
+        "layer": "L25_attention",
+        "improvement_pp": 0.0
+      },
+      {
+        "layer": "L1_mlp",
+        "improvement_pp": 0.0
+      },
+      {
+        "layer": "L7_mlp",
+        "improvement_pp": 0.0
+      }
+    ],
+    "critical_layer_comparison": {
+      "Attention L13-14 (arithmetic-specialized)": {
+        "hellaswag": -1.1,
+        "mmlu": 0.4
+      },
+      "MLP L6-7 (shared computation)": {
+        "hellaswag": -2.4,
+        "mmlu": -0.2
+      },
+      "Attention L0,L10 (controls)": {
+        "hellaswag": -1.6,
+        "mmlu": 0.21
+      },
+      "MLP L3,L15 (controls)": {
+        "hellaswag": -1.0,
+        "mmlu": 0.0
+      }
+    }
+  },
+  "completed": true
+}

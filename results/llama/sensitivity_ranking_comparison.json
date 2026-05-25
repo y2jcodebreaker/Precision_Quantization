@@ -1,0 +1,1527 @@
+{
+  "experiment": "Phase 21: Restoration vs Hessian Sensitivity Ranking",
+  "purpose": "Test whether restoration-based layer ranking captures functional structure beyond Hessian/activation sensitivity (GPTQ/ResQ proxy)",
+  "model": "meta-llama/Llama-3.1-8B-Instruct",
+  "calibration": {
+    "dataset": "WikiText-2 test",
+    "num_sequences": 128,
+    "seq_len": 2048
+  },
+  "methodology": {
+    "restoration_metric": "Fraction of flipped examples recovered per sub-layer (Phase 9)",
+    "hessian_proxy": "Tr(H_l) / d = E[||x_l||^2] / d (activation covariance trace, GPTQ standard)",
+    "sqnr_metric": "Signal-to-Quantization-Noise Ratio in dB (Phase 18b, weight-space)"
+  },
+  "correlations": {
+    "restoration_aggregate_vs_hessian": {
+      "spearman_rho": -0.5062,
+      "spearman_p": 2e-05,
+      "pearson_r": -0.4883,
+      "pearson_p": 4.2e-05,
+      "n": 64,
+      "interpretation": "moderate negative correlation (\u03c1=-0.506, p=0.0000, significant). Rankings broadly agree \u2014 partial Hessian confound."
+    },
+    "restoration_gsm8k_vs_hessian": {
+      "spearman_rho": -0.4825,
+      "spearman_p": 5.4e-05,
+      "pearson_r": -0.3982,
+      "pearson_p": 0.001119,
+      "n": 64,
+      "interpretation": "moderate negative correlation (\u03c1=-0.483, p=0.0001, significant). Rankings broadly agree \u2014 partial Hessian confound."
+    },
+    "restoration_arc_vs_hessian": {
+      "spearman_rho": -0.5348,
+      "spearman_p": 5e-06,
+      "pearson_r": -0.4893,
+      "pearson_p": 4.1e-05,
+      "n": 64,
+      "interpretation": "moderate negative correlation (\u03c1=-0.535, p=0.0000, significant). Rankings broadly agree \u2014 partial Hessian confound."
+    },
+    "restoration_math_vs_hessian": {
+      "spearman_rho": -0.2555,
+      "spearman_p": 0.041613,
+      "pearson_r": -0.2505,
+      "pearson_p": 0.045918,
+      "n": 64,
+      "interpretation": "weak negative correlation (\u03c1=-0.255, p=0.0416, significant). Rankings DIVERGE \u2014 restoration captures functional structure beyond Hessian sensitivity."
+    },
+    "restoration_aggregate_vs_sqnr": {
+      "spearman_rho": 0.0251,
+      "spearman_p": 0.84366,
+      "pearson_r": -0.09,
+      "pearson_p": 0.479397,
+      "n": 64,
+      "interpretation": "weak positive correlation (\u03c1=0.025, p=0.8437, not significant). Rankings DIVERGE \u2014 restoration captures functional structure beyond Hessian sensitivity."
+    },
+    "restoration_gsm8k_vs_sqnr": {
+      "spearman_rho": 0.1103,
+      "spearman_p": 0.385428,
+      "pearson_r": 0.0253,
+      "pearson_p": 0.842631,
+      "n": 64,
+      "interpretation": "weak positive correlation (\u03c1=0.110, p=0.3854, not significant). Rankings DIVERGE \u2014 restoration captures functional structure beyond Hessian sensitivity."
+    },
+    "restoration_arc_vs_sqnr": {
+      "spearman_rho": -0.0319,
+      "spearman_p": 0.802148,
+      "pearson_r": -0.0555,
+      "pearson_p": 0.663117,
+      "n": 64,
+      "interpretation": "weak negative correlation (\u03c1=-0.032, p=0.8021, not significant). Rankings DIVERGE \u2014 restoration captures functional structure beyond Hessian sensitivity."
+    },
+    "restoration_math_vs_sqnr": {
+      "spearman_rho": -0.1384,
+      "spearman_p": 0.275551,
+      "pearson_r": -0.2503,
+      "pearson_p": 0.046033,
+      "n": 64,
+      "interpretation": "weak negative correlation (\u03c1=-0.138, p=0.2756, not significant). Rankings DIVERGE \u2014 restoration captures functional structure beyond Hessian sensitivity."
+    },
+    "hessian_vs_sqnr_sanity": {
+      "spearman_rho": 0.2816,
+      "spearman_p": 0.024161,
+      "n": 64,
+      "note": "Sanity check: two numerical sensitivity measures should correlate"
+    }
+  },
+  "summary": [
+    "Aggregate restoration vs Hessian: Spearman \u03c1=-0.506 (p=0.0000)",
+    "RESULT: Moderate divergence. Some overlap with Hessian ranking, but functional task-selectivity adds independent information. Per-dataset correlations likely show task-specific patterns."
+  ],
+  "critical_layer_divergence": {
+    "L13_attention": {
+      "layer": 13,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.4838709677419355,
+        "arc": 0.027777777777777776,
+        "math": 0.125
+      },
+      "restoration_aggregate": 0.2122162485065711,
+      "restoration_rank": 59,
+      "hessian_trace_normalized": 0.25848384,
+      "hessian_rms_activation": 0.508413,
+      "hessian_rank": 51,
+      "divergence_score": -0.0783,
+      "sqnr_db": 20.6554
+    },
+    "L14_attention": {
+      "layer": 14,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.5161290322580645,
+        "arc": 0.05555555555555555,
+        "math": 0.041666666666666664
+      },
+      "restoration_aggregate": 0.20445041816009557,
+      "restoration_rank": 58,
+      "hessian_trace_normalized": 0.2744705,
+      "hessian_rms_activation": 0.523899,
+      "hessian_rank": 54,
+      "divergence_score": -0.1616,
+      "sqnr_db": 20.5477
+    },
+    "L6_mlp": {
+      "layer": 6,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.22580645161290322,
+        "arc": 0.25,
+        "math": 0.125
+      },
+      "restoration_aggregate": 0.2002688172043011,
+      "restoration_rank": 57,
+      "hessian_trace_normalized": 0.06222461,
+      "hessian_rms_activation": 0.249449,
+      "hessian_rank": 9,
+      "divergence_score": 0.5516,
+      "sqnr_db": 20.6693
+    },
+    "L7_mlp": {
+      "layer": 7,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.2903225806451613,
+        "arc": 0.2222222222222222,
+        "math": 0.20833333333333334
+      },
+      "restoration_aggregate": 0.2402927120669056,
+      "restoration_rank": 63,
+      "hessian_trace_normalized": 0.06543187,
+      "hessian_rms_activation": 0.255797,
+      "hessian_rank": 10,
+      "divergence_score": 0.6874,
+      "sqnr_db": 20.6532
+    }
+  },
+  "top_positive_divergence": [
+    {
+      "key": "L1_mlp",
+      "layer": 1,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.3870967741935484,
+        "arc": 0.1388888888888889,
+        "math": 0.2916666666666667
+      },
+      "restoration_aggregate": 0.27255077658303467,
+      "restoration_rank": 64,
+      "hessian_trace_normalized": 0.01562331,
+      "hessian_rms_activation": 0.124993,
+      "hessian_rank": 2,
+      "divergence_score": 0.9768,
+      "sqnr_db": 20.642
+    },
+    {
+      "key": "L7_mlp",
+      "layer": 7,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.2903225806451613,
+        "arc": 0.2222222222222222,
+        "math": 0.20833333333333334
+      },
+      "restoration_aggregate": 0.2402927120669056,
+      "restoration_rank": 63,
+      "hessian_trace_normalized": 0.06543187,
+      "hessian_rms_activation": 0.255797,
+      "hessian_rank": 10,
+      "divergence_score": 0.6874,
+      "sqnr_db": 20.6532
+    },
+    {
+      "key": "L0_mlp",
+      "layer": 0,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.3225806451612903,
+        "arc": 0.027777777777777776,
+        "math": 0.16666666666666666
+      },
+      "restoration_aggregate": 0.17234169653524492,
+      "restoration_rank": 50,
+      "hessian_trace_normalized": 0.00885904,
+      "hessian_rms_activation": 0.094122,
+      "hessian_rank": 1,
+      "divergence_score": 0.6323,
+      "sqnr_db": 20.6217
+    },
+    {
+      "key": "L8_mlp",
+      "layer": 8,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.3225806451612903,
+        "arc": 0.08333333333333333,
+        "math": 0.25
+      },
+      "restoration_aggregate": 0.2186379928315412,
+      "restoration_rank": 60,
+      "hessian_trace_normalized": 0.06956712,
+      "hessian_rms_activation": 0.263756,
+      "hessian_rank": 11,
+      "divergence_score": 0.5938,
+      "sqnr_db": 20.6593
+    },
+    {
+      "key": "L12_mlp",
+      "layer": 12,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.3548387096774194,
+        "arc": 0.19444444444444445,
+        "math": 0.125
+      },
+      "restoration_aggregate": 0.2247610513739546,
+      "restoration_rank": 61,
+      "hessian_trace_normalized": 0.07687325,
+      "hessian_rms_activation": 0.27726,
+      "hessian_rank": 15,
+      "divergence_score": 0.5912,
+      "sqnr_db": 20.6198
+    },
+    {
+      "key": "L6_mlp",
+      "layer": 6,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.22580645161290322,
+        "arc": 0.25,
+        "math": 0.125
+      },
+      "restoration_aggregate": 0.2002688172043011,
+      "restoration_rank": 57,
+      "hessian_trace_normalized": 0.06222461,
+      "hessian_rms_activation": 0.249449,
+      "hessian_rank": 9,
+      "divergence_score": 0.5516,
+      "sqnr_db": 20.6693
+    },
+    {
+      "key": "L5_mlp",
+      "layer": 5,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.3548387096774194,
+        "arc": 0.1111111111111111,
+        "math": 0.041666666666666664
+      },
+      "restoration_aggregate": 0.16920549581839905,
+      "restoration_rank": 49,
+      "hessian_trace_normalized": 0.05582462,
+      "hessian_rms_activation": 0.236272,
+      "hessian_rank": 8,
+      "divergence_score": 0.4596,
+      "sqnr_db": 20.6642
+    },
+    {
+      "key": "L11_mlp",
+      "layer": 11,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.3225806451612903,
+        "arc": 0.1111111111111111,
+        "math": 0.125
+      },
+      "restoration_aggregate": 0.18623058542413382,
+      "restoration_rank": 55,
+      "hessian_trace_normalized": 0.07673049,
+      "hessian_rms_activation": 0.277003,
+      "hessian_rank": 14,
+      "divergence_score": 0.4503,
+      "sqnr_db": 20.6512
+    },
+    {
+      "key": "L14_mlp",
+      "layer": 14,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.3870967741935484,
+        "arc": 0.027777777777777776,
+        "math": 0.16666666666666666
+      },
+      "restoration_aggregate": 0.19384707287933092,
+      "restoration_rank": 56,
+      "hessian_trace_normalized": 0.09062237,
+      "hessian_rms_activation": 0.301035,
+      "hessian_rank": 17,
+      "divergence_score": 0.4306,
+      "sqnr_db": 20.6235
+    },
+    {
+      "key": "L13_mlp",
+      "layer": 13,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.3548387096774194,
+        "arc": 0.08333333333333333,
+        "math": 0.08333333333333333
+      },
+      "restoration_aggregate": 0.17383512544802868,
+      "restoration_rank": 51,
+      "hessian_trace_normalized": 0.08172874,
+      "hessian_rms_activation": 0.285882,
+      "hessian_rank": 16,
+      "divergence_score": 0.3877,
+      "sqnr_db": 20.6261
+    }
+  ],
+  "top_negative_divergence": [
+    {
+      "key": "L23_attention",
+      "layer": 23,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.06451612903225806,
+        "arc": 0.0,
+        "math": 0.0
+      },
+      "restoration_aggregate": 0.02150537634408602,
+      "restoration_rank": 1,
+      "hessian_trace_normalized": 0.28162019,
+      "hessian_rms_activation": 0.530679,
+      "hessian_rank": 56,
+      "divergence_score": -0.8574,
+      "sqnr_db": 20.6105
+    },
+    {
+      "key": "L27_attention",
+      "layer": 27,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.03225806451612903,
+        "arc": 0.0,
+        "math": 0.08333333333333333
+      },
+      "restoration_aggregate": 0.038530465949820784,
+      "restoration_rank": 4,
+      "hessian_trace_normalized": 0.29729161,
+      "hessian_rms_activation": 0.545245,
+      "hessian_rank": 63,
+      "divergence_score": -0.8488,
+      "sqnr_db": 20.5507
+    },
+    {
+      "key": "L26_attention",
+      "layer": 26,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.06451612903225806,
+        "arc": 0.0,
+        "math": 0.041666666666666664
+      },
+      "restoration_aggregate": 0.035394265232974904,
+      "restoration_rank": 3,
+      "hessian_trace_normalized": 0.28875782,
+      "hessian_rms_activation": 0.537362,
+      "hessian_rank": 58,
+      "divergence_score": -0.831,
+      "sqnr_db": 20.5704
+    },
+    {
+      "key": "L25_attention",
+      "layer": 25,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.0967741935483871,
+        "arc": 0.0,
+        "math": 0.041666666666666664
+      },
+      "restoration_aggregate": 0.04614695340501792,
+      "restoration_rank": 5,
+      "hessian_trace_normalized": 0.29301843,
+      "hessian_rms_activation": 0.541312,
+      "hessian_rank": 60,
+      "divergence_score": -0.8061,
+      "sqnr_db": 20.5853
+    },
+    {
+      "key": "L28_attention",
+      "layer": 28,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.0967741935483871,
+        "arc": 0.0,
+        "math": 0.041666666666666664
+      },
+      "restoration_aggregate": 0.04614695340501792,
+      "restoration_rank": 7,
+      "hessian_trace_normalized": 0.29296521,
+      "hessian_rms_activation": 0.541263,
+      "hessian_rank": 59,
+      "divergence_score": -0.806,
+      "sqnr_db": 20.5962
+    },
+    {
+      "key": "L30_attention",
+      "layer": 30,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.06451612903225806,
+        "arc": 0.0,
+        "math": 0.08333333333333333
+      },
+      "restoration_aggregate": 0.04928315412186379,
+      "restoration_rank": 8,
+      "hessian_trace_normalized": 0.29549746,
+      "hessian_rms_activation": 0.543597,
+      "hessian_rank": 62,
+      "divergence_score": -0.8031,
+      "sqnr_db": 20.5031
+    },
+    {
+      "key": "L22_attention",
+      "layer": 22,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.0967741935483871,
+        "arc": 0.0,
+        "math": 0.08333333333333333
+      },
+      "restoration_aggregate": 0.060035842293906815,
+      "restoration_rank": 10,
+      "hessian_trace_normalized": 0.30016817,
+      "hessian_rms_activation": 0.547876,
+      "hessian_rank": 64,
+      "divergence_score": -0.7797,
+      "sqnr_db": 20.6313
+    },
+    {
+      "key": "L29_attention",
+      "layer": 29,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.0967741935483871,
+        "arc": 0.0,
+        "math": 0.08333333333333333
+      },
+      "restoration_aggregate": 0.060035842293906815,
+      "restoration_rank": 13,
+      "hessian_trace_normalized": 0.28770527,
+      "hessian_rms_activation": 0.536382,
+      "hessian_rank": 57,
+      "divergence_score": -0.7369,
+      "sqnr_db": 20.5728
+    },
+    {
+      "key": "L21_attention",
+      "layer": 21,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.12903225806451613,
+        "arc": 0.0,
+        "math": 0.041666666666666664
+      },
+      "restoration_aggregate": 0.05689964157706093,
+      "restoration_rank": 9,
+      "hessian_trace_normalized": 0.26747858,
+      "hessian_rms_activation": 0.517183,
+      "hessian_rank": 53,
+      "divergence_score": -0.679,
+      "sqnr_db": 20.6477
+    },
+    {
+      "key": "L20_attention",
+      "layer": 20,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.16129032258064516,
+        "arc": 0.0,
+        "math": 0.041666666666666664
+      },
+      "restoration_aggregate": 0.06765232974910394,
+      "restoration_rank": 16,
+      "hessian_trace_normalized": 0.27572941,
+      "hessian_rms_activation": 0.525099,
+      "hessian_rank": 55,
+      "divergence_score": -0.6679,
+      "sqnr_db": 20.6281
+    }
+  ],
+  "per_layer": {
+    "L0_attention": {
+      "layer": 0,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.22580645161290322,
+        "arc": 0.027777777777777776,
+        "math": 0.0
+      },
+      "restoration_aggregate": 0.08452807646356032,
+      "restoration_rank": 21,
+      "hessian_trace_normalized": 0.01746941,
+      "hessian_rms_activation": 0.132172,
+      "hessian_rank": 3,
+      "divergence_score": 0.2806,
+      "sqnr_db": 19.8629
+    },
+    "L0_mlp": {
+      "layer": 0,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.3225806451612903,
+        "arc": 0.027777777777777776,
+        "math": 0.16666666666666666
+      },
+      "restoration_aggregate": 0.17234169653524492,
+      "restoration_rank": 50,
+      "hessian_trace_normalized": 0.00885904,
+      "hessian_rms_activation": 0.094122,
+      "hessian_rank": 1,
+      "divergence_score": 0.6323,
+      "sqnr_db": 20.6217
+    },
+    "L10_attention": {
+      "layer": 10,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.41935483870967744,
+        "arc": 0.027777777777777776,
+        "math": 0.08333333333333333
+      },
+      "restoration_aggregate": 0.1768219832735962,
+      "restoration_rank": 53,
+      "hessian_trace_normalized": 0.23654728,
+      "hessian_rms_activation": 0.486361,
+      "hessian_rank": 46,
+      "divergence_score": -0.1328,
+      "sqnr_db": 20.569
+    },
+    "L10_mlp": {
+      "layer": 10,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.25806451612903225,
+        "arc": 0.08333333333333333,
+        "math": 0.125
+      },
+      "restoration_aggregate": 0.1554659498207885,
+      "restoration_rank": 47,
+      "hessian_trace_normalized": 0.07258521,
+      "hessian_rms_activation": 0.269416,
+      "hessian_rank": 13,
+      "divergence_score": 0.3517,
+      "sqnr_db": 20.6698
+    },
+    "L11_attention": {
+      "layer": 11,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.22580645161290322,
+        "arc": 0.05555555555555555,
+        "math": 0.041666666666666664
+      },
+      "restoration_aggregate": 0.10767622461170849,
+      "restoration_rank": 30,
+      "hessian_trace_normalized": 0.23284078,
+      "hessian_rms_activation": 0.482536,
+      "hessian_rank": 44,
+      "divergence_score": -0.3738,
+      "sqnr_db": 20.6603
+    },
+    "L11_mlp": {
+      "layer": 11,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.3225806451612903,
+        "arc": 0.1111111111111111,
+        "math": 0.125
+      },
+      "restoration_aggregate": 0.18623058542413382,
+      "restoration_rank": 55,
+      "hessian_trace_normalized": 0.07673049,
+      "hessian_rms_activation": 0.277003,
+      "hessian_rank": 14,
+      "divergence_score": 0.4503,
+      "sqnr_db": 20.6512
+    },
+    "L12_attention": {
+      "layer": 12,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.22580645161290322,
+        "arc": 0.05555555555555555,
+        "math": 0.125
+      },
+      "restoration_aggregate": 0.13545400238948627,
+      "restoration_rank": 39,
+      "hessian_trace_normalized": 0.18739379,
+      "hessian_rms_activation": 0.43289,
+      "hessian_rank": 37,
+      "divergence_score": -0.1159,
+      "sqnr_db": 20.6825
+    },
+    "L12_mlp": {
+      "layer": 12,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.3548387096774194,
+        "arc": 0.19444444444444445,
+        "math": 0.125
+      },
+      "restoration_aggregate": 0.2247610513739546,
+      "restoration_rank": 61,
+      "hessian_trace_normalized": 0.07687325,
+      "hessian_rms_activation": 0.27726,
+      "hessian_rank": 15,
+      "divergence_score": 0.5912,
+      "sqnr_db": 20.6198
+    },
+    "L13_attention": {
+      "layer": 13,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.4838709677419355,
+        "arc": 0.027777777777777776,
+        "math": 0.125
+      },
+      "restoration_aggregate": 0.2122162485065711,
+      "restoration_rank": 59,
+      "hessian_trace_normalized": 0.25848384,
+      "hessian_rms_activation": 0.508413,
+      "hessian_rank": 51,
+      "divergence_score": -0.0783,
+      "sqnr_db": 20.6554
+    },
+    "L13_mlp": {
+      "layer": 13,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.3548387096774194,
+        "arc": 0.08333333333333333,
+        "math": 0.08333333333333333
+      },
+      "restoration_aggregate": 0.17383512544802868,
+      "restoration_rank": 51,
+      "hessian_trace_normalized": 0.08172874,
+      "hessian_rms_activation": 0.285882,
+      "hessian_rank": 16,
+      "divergence_score": 0.3877,
+      "sqnr_db": 20.6261
+    },
+    "L14_attention": {
+      "layer": 14,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.5161290322580645,
+        "arc": 0.05555555555555555,
+        "math": 0.041666666666666664
+      },
+      "restoration_aggregate": 0.20445041816009557,
+      "restoration_rank": 58,
+      "hessian_trace_normalized": 0.2744705,
+      "hessian_rms_activation": 0.523899,
+      "hessian_rank": 54,
+      "divergence_score": -0.1616,
+      "sqnr_db": 20.5477
+    },
+    "L14_mlp": {
+      "layer": 14,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.3870967741935484,
+        "arc": 0.027777777777777776,
+        "math": 0.16666666666666666
+      },
+      "restoration_aggregate": 0.19384707287933092,
+      "restoration_rank": 56,
+      "hessian_trace_normalized": 0.09062237,
+      "hessian_rms_activation": 0.301035,
+      "hessian_rank": 17,
+      "divergence_score": 0.4306,
+      "sqnr_db": 20.6235
+    },
+    "L15_attention": {
+      "layer": 15,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.16129032258064516,
+        "arc": 0.0,
+        "math": 0.08333333333333333
+      },
+      "restoration_aggregate": 0.08154121863799284,
+      "restoration_rank": 20,
+      "hessian_trace_normalized": 0.24457637,
+      "hessian_rms_activation": 0.494547,
+      "hessian_rank": 47,
+      "divergence_score": -0.51,
+      "sqnr_db": 20.6389
+    },
+    "L15_mlp": {
+      "layer": 15,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.3548387096774194,
+        "arc": 0.0,
+        "math": 0.16666666666666666
+      },
+      "restoration_aggregate": 0.17383512544802868,
+      "restoration_rank": 52,
+      "hessian_trace_normalized": 0.09726991,
+      "hessian_rms_activation": 0.311881,
+      "hessian_rank": 18,
+      "divergence_score": 0.3343,
+      "sqnr_db": 20.6418
+    },
+    "L16_attention": {
+      "layer": 16,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.25806451612903225,
+        "arc": 0.0,
+        "math": 0.08333333333333333
+      },
+      "restoration_aggregate": 0.11379928315412186,
+      "restoration_rank": 34,
+      "hessian_trace_normalized": 0.26075805,
+      "hessian_rms_activation": 0.510645,
+      "hessian_rank": 52,
+      "divergence_score": -0.4472,
+      "sqnr_db": 20.631
+    },
+    "L16_mlp": {
+      "layer": 16,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.1935483870967742,
+        "arc": 0.027777777777777776,
+        "math": 0.16666666666666666
+      },
+      "restoration_aggregate": 0.12933094384707286,
+      "restoration_rank": 38,
+      "hessian_trace_normalized": 0.10324102,
+      "hessian_rms_activation": 0.321311,
+      "hessian_rank": 19,
+      "divergence_score": 0.1505,
+      "sqnr_db": 20.6605
+    },
+    "L17_attention": {
+      "layer": 17,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.1935483870967742,
+        "arc": 0.05555555555555555,
+        "math": 0.16666666666666666
+      },
+      "restoration_aggregate": 0.13859020310633213,
+      "restoration_rank": 43,
+      "hessian_trace_normalized": 0.24792974,
+      "hessian_rms_activation": 0.497925,
+      "hessian_rank": 48,
+      "divergence_score": -0.3122,
+      "sqnr_db": 20.652
+    },
+    "L17_mlp": {
+      "layer": 17,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.2903225806451613,
+        "arc": 0.0,
+        "math": 0.125
+      },
+      "restoration_aggregate": 0.13844086021505378,
+      "restoration_rank": 42,
+      "hessian_trace_normalized": 0.10999687,
+      "hessian_rms_activation": 0.331658,
+      "hessian_rank": 20,
+      "divergence_score": 0.1608,
+      "sqnr_db": 20.6577
+    },
+    "L18_attention": {
+      "layer": 18,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.25806451612903225,
+        "arc": 0.0,
+        "math": 0.08333333333333333
+      },
+      "restoration_aggregate": 0.11379928315412186,
+      "restoration_rank": 35,
+      "hessian_trace_normalized": 0.25810091,
+      "hessian_rms_activation": 0.508036,
+      "hessian_rank": 50,
+      "divergence_score": -0.4381,
+      "sqnr_db": 20.6434
+    },
+    "L18_mlp": {
+      "layer": 18,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.16129032258064516,
+        "arc": 0.0,
+        "math": 0.125
+      },
+      "restoration_aggregate": 0.0954301075268817,
+      "restoration_rank": 28,
+      "hessian_trace_normalized": 0.11428083,
+      "hessian_rms_activation": 0.338054,
+      "hessian_rank": 21,
+      "divergence_score": -0.0118,
+      "sqnr_db": 20.6823
+    },
+    "L19_attention": {
+      "layer": 19,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.16129032258064516,
+        "arc": 0.027777777777777776,
+        "math": 0.125
+      },
+      "restoration_aggregate": 0.10468936678614098,
+      "restoration_rank": 29,
+      "hessian_trace_normalized": 0.25692696,
+      "hessian_rms_activation": 0.50688,
+      "hessian_rank": 49,
+      "divergence_score": -0.4675,
+      "sqnr_db": 20.6517
+    },
+    "L19_mlp": {
+      "layer": 19,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.25806451612903225,
+        "arc": 0.027777777777777776,
+        "math": 0.125
+      },
+      "restoration_aggregate": 0.13694743130227002,
+      "restoration_rank": 40,
+      "hessian_trace_normalized": 0.11894506,
+      "hessian_rms_activation": 0.344884,
+      "hessian_rank": 22,
+      "divergence_score": 0.1246,
+      "sqnr_db": 20.6867
+    },
+    "L1_attention": {
+      "layer": 1,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.22580645161290322,
+        "arc": 0.027777777777777776,
+        "math": 0.08333333333333333
+      },
+      "restoration_aggregate": 0.1123058542413381,
+      "restoration_rank": 32,
+      "hessian_trace_normalized": 0.05053122,
+      "hessian_rms_activation": 0.224791,
+      "hessian_rank": 7,
+      "divergence_score": 0.269,
+      "sqnr_db": 20.436
+    },
+    "L1_mlp": {
+      "layer": 1,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.3870967741935484,
+        "arc": 0.1388888888888889,
+        "math": 0.2916666666666667
+      },
+      "restoration_aggregate": 0.27255077658303467,
+      "restoration_rank": 64,
+      "hessian_trace_normalized": 0.01562331,
+      "hessian_rms_activation": 0.124993,
+      "hessian_rank": 2,
+      "divergence_score": 0.9768,
+      "sqnr_db": 20.642
+    },
+    "L20_attention": {
+      "layer": 20,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.16129032258064516,
+        "arc": 0.0,
+        "math": 0.041666666666666664
+      },
+      "restoration_aggregate": 0.06765232974910394,
+      "restoration_rank": 16,
+      "hessian_trace_normalized": 0.27572941,
+      "hessian_rms_activation": 0.525099,
+      "hessian_rank": 55,
+      "divergence_score": -0.6679,
+      "sqnr_db": 20.6281
+    },
+    "L20_mlp": {
+      "layer": 20,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.1935483870967742,
+        "arc": 0.0,
+        "math": 0.08333333333333333
+      },
+      "restoration_aggregate": 0.09229390681003584,
+      "restoration_rank": 26,
+      "hessian_trace_normalized": 0.12615805,
+      "hessian_rms_activation": 0.355187,
+      "hessian_rank": 23,
+      "divergence_score": -0.064,
+      "sqnr_db": 20.6916
+    },
+    "L21_attention": {
+      "layer": 21,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.12903225806451613,
+        "arc": 0.0,
+        "math": 0.041666666666666664
+      },
+      "restoration_aggregate": 0.05689964157706093,
+      "restoration_rank": 9,
+      "hessian_trace_normalized": 0.26747858,
+      "hessian_rms_activation": 0.517183,
+      "hessian_rank": 53,
+      "divergence_score": -0.679,
+      "sqnr_db": 20.6477
+    },
+    "L21_mlp": {
+      "layer": 21,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.12903225806451613,
+        "arc": 0.0,
+        "math": 0.125
+      },
+      "restoration_aggregate": 0.0846774193548387,
+      "restoration_rank": 22,
+      "hessian_trace_normalized": 0.13579011,
+      "hessian_rms_activation": 0.368497,
+      "hessian_rank": 26,
+      "divergence_score": -0.125,
+      "sqnr_db": 20.6844
+    },
+    "L22_attention": {
+      "layer": 22,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.0967741935483871,
+        "arc": 0.0,
+        "math": 0.08333333333333333
+      },
+      "restoration_aggregate": 0.060035842293906815,
+      "restoration_rank": 10,
+      "hessian_trace_normalized": 0.30016817,
+      "hessian_rms_activation": 0.547876,
+      "hessian_rank": 64,
+      "divergence_score": -0.7797,
+      "sqnr_db": 20.6313
+    },
+    "L22_mlp": {
+      "layer": 22,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.16129032258064516,
+        "arc": 0.027777777777777776,
+        "math": 0.041666666666666664
+      },
+      "restoration_aggregate": 0.0769115890083632,
+      "restoration_rank": 18,
+      "hessian_trace_normalized": 0.14110545,
+      "hessian_rms_activation": 0.37564,
+      "hessian_rank": 27,
+      "divergence_score": -0.1718,
+      "sqnr_db": 20.6982
+    },
+    "L23_attention": {
+      "layer": 23,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.06451612903225806,
+        "arc": 0.0,
+        "math": 0.0
+      },
+      "restoration_aggregate": 0.02150537634408602,
+      "restoration_rank": 1,
+      "hessian_trace_normalized": 0.28162019,
+      "hessian_rms_activation": 0.530679,
+      "hessian_rank": 56,
+      "divergence_score": -0.8574,
+      "sqnr_db": 20.6105
+    },
+    "L23_mlp": {
+      "layer": 23,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.06451612903225806,
+        "arc": 0.0,
+        "math": 0.125
+      },
+      "restoration_aggregate": 0.06317204301075269,
+      "restoration_rank": 14,
+      "hessian_trace_normalized": 0.14952968,
+      "hessian_rms_activation": 0.386691,
+      "hessian_rank": 28,
+      "divergence_score": -0.2511,
+      "sqnr_db": 20.699
+    },
+    "L24_attention": {
+      "layer": 24,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.0967741935483871,
+        "arc": 0.0,
+        "math": 0.16666666666666666
+      },
+      "restoration_aggregate": 0.08781362007168458,
+      "restoration_rank": 24,
+      "hessian_trace_normalized": 0.29364665,
+      "hessian_rms_activation": 0.541892,
+      "hessian_rank": 61,
+      "divergence_score": -0.6554,
+      "sqnr_db": 20.5862
+    },
+    "L24_mlp": {
+      "layer": 24,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.06451612903225806,
+        "arc": 0.0,
+        "math": 0.125
+      },
+      "restoration_aggregate": 0.06317204301075269,
+      "restoration_rank": 15,
+      "hessian_trace_normalized": 0.15687996,
+      "hessian_rms_activation": 0.396081,
+      "hessian_rank": 29,
+      "divergence_score": -0.2763,
+      "sqnr_db": 20.7005
+    },
+    "L25_attention": {
+      "layer": 25,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.0967741935483871,
+        "arc": 0.0,
+        "math": 0.041666666666666664
+      },
+      "restoration_aggregate": 0.04614695340501792,
+      "restoration_rank": 5,
+      "hessian_trace_normalized": 0.29301843,
+      "hessian_rms_activation": 0.541312,
+      "hessian_rank": 60,
+      "divergence_score": -0.8061,
+      "sqnr_db": 20.5853
+    },
+    "L25_mlp": {
+      "layer": 25,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.0967741935483871,
+        "arc": 0.0,
+        "math": 0.041666666666666664
+      },
+      "restoration_aggregate": 0.04614695340501792,
+      "restoration_rank": 6,
+      "hessian_trace_normalized": 0.16632188,
+      "hessian_rms_activation": 0.407826,
+      "hessian_rank": 32,
+      "divergence_score": -0.3712,
+      "sqnr_db": 20.6994
+    },
+    "L26_attention": {
+      "layer": 26,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.06451612903225806,
+        "arc": 0.0,
+        "math": 0.041666666666666664
+      },
+      "restoration_aggregate": 0.035394265232974904,
+      "restoration_rank": 3,
+      "hessian_trace_normalized": 0.28875782,
+      "hessian_rms_activation": 0.537362,
+      "hessian_rank": 58,
+      "divergence_score": -0.831,
+      "sqnr_db": 20.5704
+    },
+    "L26_mlp": {
+      "layer": 26,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.06451612903225806,
+        "arc": 0.027777777777777776,
+        "math": 0.0
+      },
+      "restoration_aggregate": 0.03076463560334528,
+      "restoration_rank": 2,
+      "hessian_trace_normalized": 0.17907688,
+      "hessian_rms_activation": 0.423175,
+      "hessian_rank": 36,
+      "divergence_score": -0.4714,
+      "sqnr_db": 20.6973
+    },
+    "L27_attention": {
+      "layer": 27,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.03225806451612903,
+        "arc": 0.0,
+        "math": 0.08333333333333333
+      },
+      "restoration_aggregate": 0.038530465949820784,
+      "restoration_rank": 4,
+      "hessian_trace_normalized": 0.29729161,
+      "hessian_rms_activation": 0.545245,
+      "hessian_rank": 63,
+      "divergence_score": -0.8488,
+      "sqnr_db": 20.5507
+    },
+    "L27_mlp": {
+      "layer": 27,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.0967741935483871,
+        "arc": 0.0,
+        "math": 0.08333333333333333
+      },
+      "restoration_aggregate": 0.060035842293906815,
+      "restoration_rank": 11,
+      "hessian_trace_normalized": 0.19365577,
+      "hessian_rms_activation": 0.440063,
+      "hessian_rank": 38,
+      "divergence_score": -0.4141,
+      "sqnr_db": 20.6956
+    },
+    "L28_attention": {
+      "layer": 28,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.0967741935483871,
+        "arc": 0.0,
+        "math": 0.041666666666666664
+      },
+      "restoration_aggregate": 0.04614695340501792,
+      "restoration_rank": 7,
+      "hessian_trace_normalized": 0.29296521,
+      "hessian_rms_activation": 0.541263,
+      "hessian_rank": 59,
+      "divergence_score": -0.806,
+      "sqnr_db": 20.5962
+    },
+    "L28_mlp": {
+      "layer": 28,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.0967741935483871,
+        "arc": 0.0,
+        "math": 0.08333333333333333
+      },
+      "restoration_aggregate": 0.060035842293906815,
+      "restoration_rank": 12,
+      "hessian_trace_normalized": 0.21410009,
+      "hessian_rms_activation": 0.46271,
+      "hessian_rank": 42,
+      "divergence_score": -0.4843,
+      "sqnr_db": 20.6894
+    },
+    "L29_attention": {
+      "layer": 29,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.0967741935483871,
+        "arc": 0.0,
+        "math": 0.08333333333333333
+      },
+      "restoration_aggregate": 0.060035842293906815,
+      "restoration_rank": 13,
+      "hessian_trace_normalized": 0.28770527,
+      "hessian_rms_activation": 0.536382,
+      "hessian_rank": 57,
+      "divergence_score": -0.7369,
+      "sqnr_db": 20.5728
+    },
+    "L29_mlp": {
+      "layer": 29,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.12903225806451613,
+        "arc": 0.0,
+        "math": 0.08333333333333333
+      },
+      "restoration_aggregate": 0.07078853046594981,
+      "restoration_rank": 17,
+      "hessian_trace_normalized": 0.22678669,
+      "hessian_rms_activation": 0.476221,
+      "hessian_rank": 43,
+      "divergence_score": -0.4884,
+      "sqnr_db": 20.6813
+    },
+    "L2_attention": {
+      "layer": 2,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.16129032258064516,
+        "arc": 0.05555555555555555,
+        "math": 0.041666666666666664
+      },
+      "restoration_aggregate": 0.08617084826762246,
+      "restoration_rank": 23,
+      "hessian_trace_normalized": 0.17022642,
+      "hessian_rms_activation": 0.412585,
+      "hessian_rank": 34,
+      "divergence_score": -0.2378,
+      "sqnr_db": 20.4754
+    },
+    "L2_mlp": {
+      "layer": 2,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.22580645161290322,
+        "arc": 0.027777777777777776,
+        "math": 0.08333333333333333
+      },
+      "restoration_aggregate": 0.1123058542413381,
+      "restoration_rank": 33,
+      "hessian_trace_normalized": 0.0253923,
+      "hessian_rms_activation": 0.15935,
+      "hessian_rank": 4,
+      "divergence_score": 0.3553,
+      "sqnr_db": 20.6663
+    },
+    "L30_attention": {
+      "layer": 30,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.06451612903225806,
+        "arc": 0.0,
+        "math": 0.08333333333333333
+      },
+      "restoration_aggregate": 0.04928315412186379,
+      "restoration_rank": 8,
+      "hessian_trace_normalized": 0.29549746,
+      "hessian_rms_activation": 0.543597,
+      "hessian_rank": 62,
+      "divergence_score": -0.8031,
+      "sqnr_db": 20.5031
+    },
+    "L30_mlp": {
+      "layer": 30,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.1935483870967742,
+        "arc": 0.0,
+        "math": 0.25
+      },
+      "restoration_aggregate": 0.1478494623655914,
+      "restoration_rank": 44,
+      "hessian_trace_normalized": 0.2337203,
+      "hessian_rms_activation": 0.483446,
+      "hessian_rank": 45,
+      "divergence_score": -0.2294,
+      "sqnr_db": 20.6596
+    },
+    "L31_attention": {
+      "layer": 31,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.1935483870967742,
+        "arc": 0.0,
+        "math": 0.08333333333333333
+      },
+      "restoration_aggregate": 0.09229390681003584,
+      "restoration_rank": 27,
+      "hessian_trace_normalized": 0.19897183,
+      "hessian_rms_activation": 0.446063,
+      "hessian_rank": 39,
+      "divergence_score": -0.314,
+      "sqnr_db": 20.5291
+    },
+    "L31_mlp": {
+      "layer": 31,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.3870967741935484,
+        "arc": 0.027777777777777776,
+        "math": 0.2916666666666667
+      },
+      "restoration_aggregate": 0.2355137395459976,
+      "restoration_rank": 62,
+      "hessian_trace_normalized": 0.16645242,
+      "hessian_rms_activation": 0.407986,
+      "hessian_rank": 33,
+      "divergence_score": 0.3231,
+      "sqnr_db": 20.6194
+    },
+    "L3_attention": {
+      "layer": 3,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.0967741935483871,
+        "arc": 0.05555555555555555,
+        "math": 0.08333333333333333
+      },
+      "restoration_aggregate": 0.07855436081242533,
+      "restoration_rank": 19,
+      "hessian_trace_normalized": 0.12795348,
+      "hessian_rms_activation": 0.357706,
+      "hessian_rank": 25,
+      "divergence_score": -0.1206,
+      "sqnr_db": 20.6489
+    },
+    "L3_mlp": {
+      "layer": 3,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.22580645161290322,
+        "arc": 0.05555555555555555,
+        "math": 0.041666666666666664
+      },
+      "restoration_aggregate": 0.10767622461170849,
+      "restoration_rank": 31,
+      "hessian_trace_normalized": 0.03544255,
+      "hessian_rms_activation": 0.188262,
+      "hessian_rank": 5,
+      "divergence_score": 0.3038,
+      "sqnr_db": 20.6679
+    },
+    "L4_attention": {
+      "layer": 4,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.0967741935483871,
+        "arc": 0.1388888888888889,
+        "math": 0.125
+      },
+      "restoration_aggregate": 0.12022102747909198,
+      "restoration_rank": 36,
+      "hessian_trace_normalized": 0.12652763,
+      "hessian_rms_activation": 0.355707,
+      "hessian_rank": 24,
+      "divergence_score": 0.0372,
+      "sqnr_db": 20.5969
+    },
+    "L4_mlp": {
+      "layer": 4,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.22580645161290322,
+        "arc": 0.0,
+        "math": 0.041666666666666664
+      },
+      "restoration_aggregate": 0.08915770609318996,
+      "restoration_rank": 25,
+      "hessian_trace_normalized": 0.04586049,
+      "hessian_rms_activation": 0.214151,
+      "hessian_rank": 6,
+      "divergence_score": 0.2001,
+      "sqnr_db": 20.6472
+    },
+    "L5_attention": {
+      "layer": 5,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.25806451612903225,
+        "arc": 0.027777777777777776,
+        "math": 0.125
+      },
+      "restoration_aggregate": 0.13694743130227002,
+      "restoration_rank": 41,
+      "hessian_trace_normalized": 0.17179728,
+      "hessian_rms_activation": 0.414484,
+      "hessian_rank": 35,
+      "divergence_score": -0.0569,
+      "sqnr_db": 20.5526
+    },
+    "L5_mlp": {
+      "layer": 5,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.3548387096774194,
+        "arc": 0.1111111111111111,
+        "math": 0.041666666666666664
+      },
+      "restoration_aggregate": 0.16920549581839905,
+      "restoration_rank": 49,
+      "hessian_trace_normalized": 0.05582462,
+      "hessian_rms_activation": 0.236272,
+      "hessian_rank": 8,
+      "divergence_score": 0.4596,
+      "sqnr_db": 20.6642
+    },
+    "L6_attention": {
+      "layer": 6,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.22580645161290322,
+        "arc": 0.027777777777777776,
+        "math": 0.125
+      },
+      "restoration_aggregate": 0.126194743130227,
+      "restoration_rank": 37,
+      "hessian_trace_normalized": 0.15898806,
+      "hessian_rms_activation": 0.398733,
+      "hessian_rank": 30,
+      "divergence_score": -0.0523,
+      "sqnr_db": 20.6623
+    },
+    "L6_mlp": {
+      "layer": 6,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.22580645161290322,
+        "arc": 0.25,
+        "math": 0.125
+      },
+      "restoration_aggregate": 0.2002688172043011,
+      "restoration_rank": 57,
+      "hessian_trace_normalized": 0.06222461,
+      "hessian_rms_activation": 0.249449,
+      "hessian_rank": 9,
+      "divergence_score": 0.5516,
+      "sqnr_db": 20.6693
+    },
+    "L7_attention": {
+      "layer": 7,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.22580645161290322,
+        "arc": 0.05555555555555555,
+        "math": 0.16666666666666666
+      },
+      "restoration_aggregate": 0.14934289127837516,
+      "restoration_rank": 45,
+      "hessian_trace_normalized": 0.1637512,
+      "hessian_rms_activation": 0.404662,
+      "hessian_rank": 31,
+      "divergence_score": 0.0162,
+      "sqnr_db": 20.6707
+    },
+    "L7_mlp": {
+      "layer": 7,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.2903225806451613,
+        "arc": 0.2222222222222222,
+        "math": 0.20833333333333334
+      },
+      "restoration_aggregate": 0.2402927120669056,
+      "restoration_rank": 63,
+      "hessian_trace_normalized": 0.06543187,
+      "hessian_rms_activation": 0.255797,
+      "hessian_rank": 10,
+      "divergence_score": 0.6874,
+      "sqnr_db": 20.6532
+    },
+    "L8_attention": {
+      "layer": 8,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.2903225806451613,
+        "arc": 0.027777777777777776,
+        "math": 0.16666666666666666
+      },
+      "restoration_aggregate": 0.16158900836320192,
+      "restoration_rank": 48,
+      "hessian_trace_normalized": 0.20239759,
+      "hessian_rms_activation": 0.449886,
+      "hessian_rank": 40,
+      "divergence_score": -0.0715,
+      "sqnr_db": 20.5953
+    },
+    "L8_mlp": {
+      "layer": 8,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.3225806451612903,
+        "arc": 0.08333333333333333,
+        "math": 0.25
+      },
+      "restoration_aggregate": 0.2186379928315412,
+      "restoration_rank": 60,
+      "hessian_trace_normalized": 0.06956712,
+      "hessian_rms_activation": 0.263756,
+      "hessian_rank": 11,
+      "divergence_score": 0.5938,
+      "sqnr_db": 20.6593
+    },
+    "L9_attention": {
+      "layer": 9,
+      "component": "attention",
+      "restoration_recovery": {
+        "gsm8k": 0.2903225806451613,
+        "arc": 0.08333333333333333,
+        "math": 0.16666666666666666
+      },
+      "restoration_aggregate": 0.1801075268817204,
+      "restoration_rank": 54,
+      "hessian_trace_normalized": 0.20422107,
+      "hessian_rms_activation": 0.451908,
+      "hessian_rank": 41,
+      "divergence_score": -0.0098,
+      "sqnr_db": 20.6619
+    },
+    "L9_mlp": {
+      "layer": 9,
+      "component": "mlp",
+      "restoration_recovery": {
+        "gsm8k": 0.3225806451612903,
+        "arc": 0.05555555555555555,
+        "math": 0.08333333333333333
+      },
+      "restoration_aggregate": 0.1538231780167264,
+      "restoration_rank": 46,
+      "hessian_trace_normalized": 0.07155452,
+      "hessian_rms_activation": 0.267497,
+      "hessian_rank": 12,
+      "divergence_score": 0.3492,
+      "sqnr_db": 20.649
+    }
+  }
+}

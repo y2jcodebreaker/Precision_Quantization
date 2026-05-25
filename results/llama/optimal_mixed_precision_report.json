@@ -1,0 +1,88 @@
+{
+  "config": {
+    "model": "meta-llama/Llama-3.1-8B-Instruct",
+    "num_examples_per_dataset": 500,
+    "seed": 42,
+    "attn_fp16_layers": [
+      13,
+      14
+    ],
+    "mlp_fp16_layers": [
+      1,
+      6,
+      7,
+      31
+    ],
+    "total_patched_layers": 6,
+    "total_layers": 32,
+    "patch_percentage": 18.75
+  },
+  "results": {
+    "fp16": {
+      "gsm8k": {
+        "accuracy": 0.8,
+        "correct": 400,
+        "total": 500
+      },
+      "arc": {
+        "accuracy": 0.792,
+        "correct": 396,
+        "total": 500
+      },
+      "math": {
+        "accuracy": 0.552,
+        "correct": 276,
+        "total": 500
+      },
+      "memory_mb": null
+    },
+    "int4": {
+      "gsm8k": {
+        "accuracy": 0.776,
+        "correct": 388,
+        "total": 500
+      },
+      "arc": {
+        "accuracy": 0.748,
+        "correct": 374,
+        "total": 500
+      },
+      "math": {
+        "accuracy": 0.538,
+        "correct": 269,
+        "total": 500
+      },
+      "memory_mb": {
+        "allocated_mb": 5449.19873046875,
+        "reserved_mb": 7286.0,
+        "peak_mb": 5583.29638671875
+      }
+    },
+    "surgical": {
+      "patch_info": {
+        "fp16_param_count": 788529152,
+        "overhead_mb": 1128.0
+      },
+      "gsm8k": {
+        "accuracy": 0.794,
+        "correct": 397,
+        "total": 500
+      },
+      "arc": {
+        "accuracy": 0.778,
+        "correct": 389,
+        "total": 500
+      },
+      "math": {
+        "accuracy": 0.548,
+        "correct": 274,
+        "total": 500
+      },
+      "memory_mb": {
+        "allocated_mb": 6566.22607421875,
+        "reserved_mb": 13582.0,
+        "peak_mb": 11128.31884765625
+      }
+    }
+  }
+}

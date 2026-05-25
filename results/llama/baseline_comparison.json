@@ -1,0 +1,103 @@
+{
+  "experiment": "Phase 20: Baseline Comparison \u2014 NF4 vs GPTQ vs AWQ",
+  "purpose": "Compare quantization damage across methods to show our NF4 probe is not an artifact of a uniquely bad quantization scheme",
+  "base_model": "meta-llama/Llama-3.1-8B-Instruct",
+  "models_tested": {
+    "fp16": "meta-llama/Llama-3.1-8B-Instruct",
+    "nf4": "meta-llama/Llama-3.1-8B-Instruct (bitsandbytes NF4, double quant)",
+    "gptq": "hugging-quants/Meta-Llama-3.1-8B-Instruct-GPTQ-INT4",
+    "awq": "hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4"
+  },
+  "datasets": {
+    "gsm8k": 500,
+    "arc_challenge": 500,
+    "math": 200,
+    "winogrande": 500,
+    "piqa": 500,
+    "wikitext2_ppl": "128 seqs x 2048 tokens"
+  },
+  "results": {
+    "fp16": {
+      "model_name": "FP16 (baseline)",
+      "gpu_memory_mb": 15316.5,
+      "gsm8k": {
+        "accuracy": 80.2,
+        "correct": 401,
+        "total": 500
+      },
+      "arc_challenge": {
+        "accuracy": 80.0,
+        "correct": 400,
+        "total": 500
+      },
+      "math": {
+        "accuracy": 62.0,
+        "correct": 124,
+        "total": 200
+      },
+      "winogrande": {
+        "accuracy": 58.4,
+        "correct": 292,
+        "total": 500
+      },
+      "piqa": {
+        "accuracy": 76.8,
+        "correct": 384,
+        "total": 500
+      },
+      "wikitext2_ppl": 7.1429,
+      "peak_gpu_memory_mb": 29460.8
+    },
+    "nf4": {
+      "model_name": "NF4 (bitsandbytes)",
+      "gpu_memory_mb": 5449.1,
+      "gsm8k": {
+        "accuracy": 75.6,
+        "correct": 378,
+        "total": 500
+      },
+      "arc_challenge": {
+        "accuracy": 76.0,
+        "correct": 380,
+        "total": 500
+      },
+      "math": {
+        "accuracy": 60.5,
+        "correct": 121,
+        "total": 200
+      },
+      "winogrande": {
+        "accuracy": 56.4,
+        "correct": 282,
+        "total": 500
+      },
+      "piqa": {
+        "accuracy": 76.0,
+        "correct": 380,
+        "total": 500
+      },
+      "wikitext2_ppl": 7.5378,
+      "peak_gpu_memory_mb": 19585.3
+    },
+    "gptq": {
+      "load_error": "Loading a GPTQ quantized model requires optimum (`pip install optimum`)"
+    },
+    "awq": {
+      "load_error": "Loading an AWQ quantized model requires auto-awq library (`pip install autoawq`)"
+    }
+  },
+  "gap_vs_fp16": {
+    "nf4": {
+      "model_name": "NF4 (bitsandbytes)",
+      "gaps": {
+        "gsm8k": -4.6,
+        "arc_challenge": -4.0,
+        "math": -1.5,
+        "winogrande": -2.0,
+        "piqa": -0.8,
+        "wikitext2_ppl": 0.39
+      }
+    }
+  },
+  "completed": true
+}
