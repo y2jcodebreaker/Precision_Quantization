@@ -5,8 +5,8 @@ Reproducibility repository for the paper
 (anonymous submission).
 
 This repo contains:
-- the 19 Python scripts used to produce every result, table, figure, and appendix in the paper;
-- 17 pre-computed JSON result files (so a reviewer can regenerate all figures **without a GPU**);
+- the 21 Python scripts used to produce every result, table, figure, and appendix in the paper;
+- 18 pre-computed JSON result files (so a reviewer can regenerate all figures **without a GPU**);
 - 16 pre-generated PNG figures (so a reviewer can visually verify the paper's claims with `git clone` alone).
 
 ---
