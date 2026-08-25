@@ -537,6 +537,27 @@ def accuracy(results: List[Dict]) -> float:
 # Stats-only mode (no GPU inference)
 # =============================================================================
 
+def recovery_rate(fp_c, nf_c, cond_c) -> float:
+    """Fraction of forward-flipped examples that a condition answers correctly.
+
+    A forward-flipped example is one the FP16 model answers correctly and the
+    NF4 model answers incorrectly -- i.e. an item quantization demonstrably
+    broke. Both numerator and denominator are restricted to that set:
+
+        recovery = |FP16 right AND NF4 wrong AND cond right|
+                 / |FP16 right AND NF4 wrong|
+
+    NOTE: an earlier version of this function omitted the "FP16 right" term from
+    the numerator, which counted items FP16 also failed and inflated recovery.
+    The per-example arrays saved in the results JSON are the ground truth; this
+    function is the single definition used everywhere.
+    """
+    flipped = [(f, c) for f, n, c in zip(fp_c, nf_c, cond_c) if f and not n]
+    if not flipped:
+        return 0.0
+    return sum(1 for _, c in flipped if c) / len(flipped)
+
+
 def _recompute_ds_block(block: Dict[str, Any]) -> Dict[str, Any]:
     pe = block.get("per_example_correct")
     if not pe:
@@ -553,10 +574,8 @@ def _recompute_ds_block(block: Dict[str, Any]) -> Dict[str, Any]:
     r_acc  = sum(r_c)  / len(r_c)
 
     flipped = sum(1 for a, b in zip(fp_c, nf_c) if a and not b)
-    h_recovery = (sum(1 for f, h in zip(nf_c, h_c) if not f and h) / flipped
-                  if flipped > 0 else 0.0)
-    r_recovery = (sum(1 for f, r in zip(nf_c, r_c) if not f and r) / flipped
-                  if flipped > 0 else 0.0)
+    h_recovery = recovery_rate(fp_c, nf_c, h_c)
+    r_recovery = recovery_rate(fp_c, nf_c, r_c)
 
     return {
         "fp16_acc": round(fp_acc, 4),
@@ -740,14 +759,8 @@ def main() -> None:
 
         flipped = sum(1 for a, b in zip(fp_c, nf_c) if a and not b)
 
-        h_recovery = (
-            sum(1 for f, h in zip(nf_c, h_c) if not f and h) / flipped
-            if flipped > 0 else 0.0
-        )
-        r_recovery = (
-            sum(1 for f, r in zip(nf_c, r_c) if not f and r) / flipped
-            if flipped > 0 else 0.0
-        )
+        h_recovery = recovery_rate(fp_c, nf_c, h_c)
+        r_recovery = recovery_rate(fp_c, nf_c, r_c)
 
         output["results"][ds_name] = {
             "fp16_acc": round(fp_acc, 4),

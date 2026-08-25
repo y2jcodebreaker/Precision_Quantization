@@ -1779,8 +1779,18 @@ def plot_hessian_vs_restoration(data24: dict) -> None:
     rest_acc  = [results[d]["restoration_surgical_acc"] * 100 for d in datasets]
 
     # --- Recovery rate data --------------------------------------------------
-    hess_rec = [results[d]["hessian_recovery_rate"]     * 100 for d in datasets]
-    rest_rec = [results[d]["restoration_recovery_rate"] * 100 for d in datasets]
+    # Recovery is recomputed from the per-example correctness arrays rather than
+    # read from the stored *_recovery_rate fields: those fields were produced by
+    # an earlier reducer whose numerator omitted the "FP16 correct" condition.
+    # The arrays are the ground truth and ship with the results JSON.
+    def _recovery(d, cond):
+        pe = results[d]["per_example_correct"]
+        flipped = [(f, c) for f, n, c in
+                   zip(pe["fp16"], pe["nf4"], pe[cond]) if f and not n]
+        return 100.0 * sum(1 for _, c in flipped if c) / len(flipped) if flipped else 0.0
+
+    hess_rec = [_recovery(d, "hessian")     for d in datasets]
+    rest_rec = [_recovery(d, "restoration") for d in datasets]
 
     # --- Colours (colorblind-safe Okabe-Ito subset) --------------------------
     C_FP16  = "#0072B2"   # blue
@@ -1866,7 +1876,7 @@ def plot_hessian_vs_restoration(data24: dict) -> None:
     ax2.axhline(y=50, color="black", linestyle=":", linewidth=0.8, alpha=0.6)
 
     fig.suptitle(
-        "Phase 24: Hessian-Guided vs Restoration-Guided Mixed Precision\n"
+        "Hessian-Guided vs Restoration-Guided Mixed Precision\n"
         r"HESS-6 = $\{$L22,24,25,27,28,30 attn$\}$  ·  "
         r"REST-6 = $\{$L13,14 attn; L1,6,7,31 MLP$\}$",
         fontsize=10,

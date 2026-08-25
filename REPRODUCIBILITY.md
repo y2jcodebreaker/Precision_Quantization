@@ -10,12 +10,25 @@ Assumes you are at the repo root and have followed the install instructions in `
 
 | Figure | What it shows | Producing script | Input JSON | Output |
 |---|---|---|---|---|
-| **Fig 0** (teaser) | Three-panel: Problem / Diagnostic / Outcome | `src/plots/generate_teaser.py` | none (procedural) | `figures/fig0_teaser.{png,pdf}` |
-| **Fig 1** (ρ scatter) | Hessian rank vs functional rank, ρ = −0.506 | `src/plots/generate_rho_scatter.py` *and* `src/plots/generate_plots.py` | `results/llama/sensitivity_ranking_comparison.json` | `figures/plot13_restoration_vs_hessian.png`, `figures/rho_scatter.{png,pdf}` |
+| **Fig 1** (teaser) | Three-panel: Problem / Diagnostic / Outcome | `src/plots/generate_teaser.py` | none (procedural) | `figures/fig0_teaser.{png,pdf}` |
+| **Fig 4** (ρ scatter) | Hessian rank vs functional rank, ρ = −0.506 | `src/plots/generate_rho_scatter.py` *and* `src/plots/generate_plots.py` | `results/llama/sensitivity_ranking_comparison.json` | `figures/plot13_restoration_vs_hessian.png`, `figures/rho_scatter.{png,pdf}` |
 | **Fig 2** (per-layer lines) | Per-layer recovery on GSM8K / ARC / MATH | `src/plots/generate_plots.py` | `results/llama/layer_sensitivity_heatmap.json` | `figures/plot5_layer_sensitivity_lines.png` |
 | **Fig 3** (cross-task matrix) | 5×3 patch-by-task interference matrix | `src/plots/generate_plots.py` | `results/llama/cross_task_interference_report.json` | `figures/plot7_cross_task_interference.png` |
-| **Fig 4** (multi-seed) | 5-seed McNemar significance panels | `src/plots/generate_plots.py` | `results/llama/multi_seed_significance_report.json` | `figures/plot10_multi_seed_significance.png` |
-| **Fig 5** (HESS vs REST) | HESS-6 vs REST-6 recovery comparison | `src/plots/generate_plots.py` | `results/llama/hessian_vs_restoration.json` | `figures/plot16_hessian_vs_restoration.png` |
+| **Fig 5** (multi-seed, App A) | 5-seed McNemar significance panels | `src/plots/generate_plots.py` | `results/llama/multi_seed_significance_report.json` | `figures/plot10_multi_seed_significance.png` |
+| **Fig 12** (HESS vs REST, App K) | HESS-6 vs REST-6 recovery comparison | `src/plots/generate_plots.py` | `results/llama/hessian_vs_restoration.json` | `figures/plot16_hessian_vs_restoration.png` |
+
+| **Fig 17** (matched-budget baselines) | RAND-6 / EARLIEST-6-MLP vs REST-6 (App J) | `src/mechanistic/matched_budget_baselines.py` | `results/llama/matched_budget_baselines.json` | `figures/plot17_matched_budget_baselines.png` |
+
+### Statistics reported in the text
+
+| Quantity | Producing script | Input JSON |
+|---|---|---|
+| Bootstrap 95% CIs on ρ (Sec 4.6) and on HESS-6/REST-6 recovery (Sec 4.9); TOST equivalence (Sec 4.4) | `src/mechanistic/bootstrap_ci_tost.py` | `results/llama/sensitivity_ranking_comparison.json`, `results/llama/hessian_vs_restoration.json` |
+| Appendix J matched-budget table | `src/mechanistic/matched_budget_baselines.py --stats-only` | `results/llama/matched_budget_baselines.json` |
+
+Bootstrap intervals are Monte Carlo estimates over 10,000 resamples (seed 42). Because the
+two scripts above draw independently, an interval for the same quantity can differ in the
+final decimal between Section 4.9 and Appendix J; both are reported as computed.
 
 ## Tables (body)
 

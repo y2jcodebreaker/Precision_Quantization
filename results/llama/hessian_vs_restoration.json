@@ -63,8 +63,8 @@
       "hessian_surgical_acc": 0.802,
       "restoration_surgical_acc": 0.806,
       "flipped_count": 33,
-      "hessian_recovery_rate": 0.1515,
-      "restoration_recovery_rate": 0.697,
+      "hessian_recovery_rate": 0.1212,
+      "restoration_recovery_rate": 0.5758,
       "mcnemar": {
         "rest_vs_nf4_p": 0.5754,
         "hess_vs_nf4_p": 0.1435,
@@ -2090,7 +2090,7 @@
       "restoration_surgical_acc": 0.776,
       "flipped_count": 38,
       "hessian_recovery_rate": 0.0263,
-      "restoration_recovery_rate": 0.5789,
+      "restoration_recovery_rate": 0.5263,
       "mcnemar": {
         "rest_vs_nf4_p": 0.0093,
         "hess_vs_nf4_p": 0.125,
@@ -4115,8 +4115,8 @@
       "hessian_surgical_acc": 0.2,
       "restoration_surgical_acc": 0.188,
       "flipped_count": 22,
-      "hessian_recovery_rate": 0.4545,
-      "restoration_recovery_rate": 0.8182,
+      "hessian_recovery_rate": 0.2273,
+      "restoration_recovery_rate": 0.2727,
       "mcnemar": {
         "rest_vs_nf4_p": 0.8711,
         "hess_vs_nf4_p": 0.4545,
@@ -6135,5 +6135,6 @@
         ]
       }
     }
-  }
+  },
+  "_note_recovery_metric": "recovery = |FP16 right AND NF4 wrong AND cond right| / |FP16 right AND NF4 wrong|, recomputed 2026-08-25 from per_example_correct; an earlier reducer omitted the FP16-right term from the numerator. Accuracies and McNemar p-values are unaffected."
 }
