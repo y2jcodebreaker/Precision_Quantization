@@ -8,13 +8,14 @@ Required files (place in same directory or adjust paths):
 - layer_sensitivity_heatmap.json
 - bidirectional_flip_report.json
 - cross_task_interference_report.json
-- optimal_mixed_precision_report.json (in results/ or ~/Downloads/)
+- optimal_mixed_precision_report.json (under results/)
 
 Output: saves PNG files to current directory.
 """
 
 import json
 import os
+import sys
 import numpy as np
 
 import matplotlib
@@ -28,118 +29,40 @@ from matplotlib.colors import LinearSegmentedColormap
 # =============================================================================
 
 # Try multiple paths for input files
-SENSITIVITY_FILE = None
-FLIP_FILE = None
+# Locate the shipped result files. Reviewers run this from the repo root, where
+# the JSONs live under results/<model>/. --results-dir overrides the base
+# directory (as documented in README.md).
+_RESULTS_DIR = "results"
+for _i, _arg in enumerate(sys.argv):
+    if _arg == "--results-dir" and _i + 1 < len(sys.argv):
+        _RESULTS_DIR = sys.argv[_i + 1]
+    elif _arg.startswith("--results-dir="):
+        _RESULTS_DIR = _arg.split("=", 1)[1]
 
-for path in ["layer_sensitivity_heatmap.json", os.path.expanduser("~/Downloads/layer_sensitivity_heatmap.json")]:
-    if os.path.exists(path):
-        SENSITIVITY_FILE = path
-        break
 
-for path in ["bidirectional_flip_report.json", os.path.expanduser("~/Downloads/bidirectional_flip_report.json")]:
-    if os.path.exists(path):
-        FLIP_FILE = path
-        break
+def _find(basename):
+    """Return the path to a shipped result file, or None if it is absent."""
+    candidates = [os.path.join(_RESULTS_DIR, sub, basename)
+                  for sub in ("llama", "mistral", "multi_model")]
+    candidates += [os.path.join(_RESULTS_DIR, basename), basename]
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+    return None
 
-INTERFERENCE_FILE = None
-for path in [
-    "cross_task_interference_report.json",
-    os.path.expanduser("~/Downloads/cross_task_interference_report.json"),
-]:
-    if os.path.exists(path):
-        INTERFERENCE_FILE = path
-        break
 
-CAPSTONE_FILE = None
-for path in [
-    "results/optimal_mixed_precision_report.json",
-    "optimal_mixed_precision_report.json",
-    os.path.expanduser("~/Downloads/optimal_mixed_precision_report.json"),
-]:
-    if os.path.exists(path):
-        CAPSTONE_FILE = path
-        break
-
-ABLATION_FILE = None
-for path in [
-    "results/patch_count_ablation_report.json",
-    "patch_count_ablation_report.json",
-    os.path.expanduser("~/Downloads/patch_count_ablation_report.json"),
-]:
-    if os.path.exists(path):
-        ABLATION_FILE = path
-        break
-
-SIGNIFICANCE_FILE = None
-for path in [
-    "results/multi_seed_significance_report.json",
-    "multi_seed_significance_report.json",
-    os.path.expanduser("~/Downloads/multi_seed_significance_report.json"),
-]:
-    if os.path.exists(path):
-        SIGNIFICANCE_FILE = path
-        break
-
-MATH_STRAT_FILE = None
-for path in [
-    "results/math_difficulty_stratification_report.json",
-    "math_difficulty_stratification_report.json",
-    os.path.expanduser("~/Downloads/math_difficulty_stratification_report.json"),
-]:
-    if os.path.exists(path):
-        MATH_STRAT_FILE = path
-        break
-
-MISTRAL_FILE = None
-for path in [
-    "results/mistral_replication_report.json",
-    "mistral_replication_report.json",
-    os.path.expanduser("~/Downloads/mistral_replication_report.json"),
-]:
-    if os.path.exists(path):
-        MISTRAL_FILE = path
-        break
-
-PHASE21_FILE = None
-for path in [
-    "results/sensitivity_ranking_comparison.json",
-    "sensitivity_ranking_comparison.json",
-    os.path.expanduser("~/Downloads/sensitivity_ranking_comparison.json"),
-]:
-    if os.path.exists(path):
-        PHASE21_FILE = path
-        break
-
-PHASE22_FILE = None
-for path in [
-    "results/multi_quant_probe_ckpt.json",
-    "multi_quant_probe_ckpt.json",
-    os.path.expanduser("~/Downloads/multi_quant_probe_ckpt.json"),
-]:
-    if os.path.exists(path):
-        PHASE22_FILE = path
-        break
-
-PHASE23_FILE = None
-for path in [
-    "results/multi_model_probe.json",
-    "multi_model_probe.json",
-    os.path.expanduser("~/Downloads/multi_model_probe-2.json"),
-    os.path.expanduser("~/Downloads/multi_model_probe.json"),
-]:
-    if os.path.exists(path):
-        PHASE23_FILE = path
-        break
-
-PHASE24_FILE = None
-for path in [
-    "results/hessian_vs_restoration.json",
-    "paper_a_mechanistic/results/hessian_vs_restoration.json",
-    os.path.expanduser("~/Downloads/hessian_vs_restoration.json"),
-]:
-    if os.path.exists(path):
-        PHASE24_FILE = path
-        break
+SENSITIVITY_FILE  = _find("layer_sensitivity_heatmap.json")
+FLIP_FILE         = _find("bidirectional_flip_report.json")
+INTERFERENCE_FILE = _find("cross_task_interference_report.json")
+CAPSTONE_FILE     = _find("optimal_mixed_precision_report.json")
+ABLATION_FILE     = _find("patch_count_ablation_report.json")
+SIGNIFICANCE_FILE = _find("multi_seed_significance_report.json")
+MATH_STRAT_FILE   = _find("math_difficulty_stratification_report.json")
+MISTRAL_FILE      = _find("mistral_replication_report.json")
+PHASE21_FILE      = _find("sensitivity_ranking_comparison.json")
+PHASE22_FILE      = _find("multi_quant_probe_ckpt.json")
+PHASE23_FILE      = _find("multi_model_probe.json")
+PHASE24_FILE      = _find("hessian_vs_restoration.json")
 
 # Style
 plt.rcParams.update({

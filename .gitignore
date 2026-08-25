@@ -40,3 +40,6 @@ wandb/
 *.pem
 *.key
 hf_token.txt
+
+# generate_plots.py writes to the CWD; keep stray output out of the repo root
+/plot*.png
