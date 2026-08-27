@@ -32,6 +32,7 @@ Authentication:
 Set HF_TOKEN environment variable for model access.
 """
 
+import argparse
 import json
 import os
 import re
@@ -77,8 +78,13 @@ class Config:
     attn_projections: Tuple[str, ...] = ("q_proj", "k_proj", "v_proj", "o_proj")
     mlp_projections: Tuple[str, ...] = ("gate_proj", "up_proj", "down_proj")
 
-    batch_size: int = 4
+    batch_size: int = 16
     max_new_tokens: int = 256
+    # MATH solutions are long; a response truncated before it emits \boxed{} is
+    # scored wrong regardless of the model. 256 tokens collapsed MATH to an
+    # 18.4% FP16 baseline (below NF4's 19.4%). 512 matches the protocol used by
+    # the cross-task and multi-seed runs.
+    max_new_tokens_math: int = 512
     seed: int = 42
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -218,6 +224,22 @@ def format_prompt(example: Dict) -> str:
     return ""
 
 
+def tokens_for(ds_name: str, cfg: "Config") -> int:
+    """Generation budget for a dataset (MATH gets a larger one)."""
+    return cfg.max_new_tokens_math if ds_name == "math" else cfg.max_new_tokens
+
+
+def _normalize_math(answer: str) -> str:
+    """Normalize a MATH answer for comparison (ported from baseline_comparison.py)."""
+    answer = answer.strip()
+    answer = re.sub(r"\\(?:text|mathrm|mathbf)\{([^}]+)\}", r"\1", answer)
+    answer = re.sub(r"\\(?:left|right|big|Big|bigg|Bigg)", "", answer)
+    answer = re.sub(r"\\,|\\;|\\:|\\!", "", answer)
+    answer = answer.replace("\\$", "$").replace("\\%", "%")
+    answer = re.sub(r"\s+", " ", answer).strip()
+    return answer
+
+
 # =============================================================================
 # Answer Extraction
 # =============================================================================
@@ -271,11 +293,11 @@ def extract_answer(response: str, example: Dict) -> Optional[str]:
         # Try \boxed{}
         match = re.search(r"\\boxed\{([^}]+)\}", text)
         if match:
-            return match.group(1).strip()
+            return _normalize_math(match.group(1))
         # Fallback
         match = re.search(r"(?:the\s+)?(?:final\s+)?answer\s+is[:\s]*(.+?)(?:\.|$)", text, re.IGNORECASE)
         if match:
-            return match.group(1).strip()
+            return _normalize_math(match.group(1))
 
     return None
 
@@ -293,7 +315,7 @@ def extract_ground_truth(example: Dict) -> str:
     elif dataset == "math":
         match = re.search(r"\\boxed\{([^}]+)\}", example["solution"])
         if match:
-            return match.group(1).strip()
+            return _normalize_math(match.group(1))
 
     return ""
 
@@ -311,8 +333,18 @@ def check_match(model_answer: Optional[str], ground_truth: str, dataset: str) ->
     elif dataset == "arc":
         return model_answer.upper() == ground_truth.upper()
     elif dataset == "math":
-        # Simplified comparison
-        return model_answer.strip().lower() == ground_truth.strip().lower()
+        m_norm = _normalize_math(model_answer)
+        t_norm = _normalize_math(ground_truth)
+        if m_norm == t_norm:
+            return True
+        try:
+            return abs(
+                float(re.sub(r"[^\d.\-+]", "", m_norm))
+                - float(re.sub(r"[^\d.\-+]", "", t_norm))
+            ) < 1e-6
+        except (ValueError, TypeError):
+            pass
+        return m_norm.lower() == t_norm.lower()
 
     return model_answer == ground_truth
 
@@ -331,8 +363,8 @@ def load_fp16_model(model_name: str):
 
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
-        torch_dtype=torch.float16,
         device_map="auto",
+        **_dtype_kwarg(torch.float16),
     )
     model.eval()
     return model, tokenizer
@@ -374,6 +406,19 @@ def unload_model(model, tokenizer=None):
 # FP16 Weight Cache
 # =============================================================================
 
+def _dtype_kwarg(dtype):
+    """from_pretrained renamed torch_dtype -> dtype in transformers 5.x."""
+    import inspect
+    from transformers import AutoModelForCausalLM as _M
+    try:
+        params = inspect.signature(_M.from_pretrained).parameters
+    except (ValueError, TypeError):
+        return {"dtype": dtype}
+    if "dtype" in params:
+        return {"dtype": dtype}
+    return {"torch_dtype": dtype}
+
+
 def cache_all_fp16_weights(model_name: str, num_layers: int) -> Dict:
     """
     Load FP16 model once and cache ALL attention and MLP weights.
@@ -383,9 +428,9 @@ def cache_all_fp16_weights(model_name: str, num_layers: int) -> Dict:
 
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
-        torch_dtype=torch.float16,
         device_map="cpu",
         low_cpu_mem_usage=True,
+        **_dtype_kwarg(torch.float16),
     )
 
     cache = {"attention": {}, "mlp": {}}
@@ -615,7 +660,33 @@ def load_checkpoint(filepath: str) -> Optional[Dict]:
 # =============================================================================
 
 def main():
-    config = Config()
+    parser = argparse.ArgumentParser(
+        description="Layer sensitivity profiler (restoration sweep)"
+    )
+    parser.add_argument(
+        "--datasets", nargs="+", default=["gsm8k", "arc", "math"],
+        choices=["gsm8k", "arc", "math"],
+        help="Datasets to sweep this run. Datasets not listed keep their "
+             "existing values in the output JSON.",
+    )
+    parser.add_argument(
+        "--batch-size", type=int, default=16,
+        help="Generation batch size (default 16). The original sweep used 4; "
+             "larger batches are faster but change matmul reduction order, so "
+             "a borderline example can occasionally flip.",
+    )
+    parser.add_argument(
+        "--math-max-new-tokens", type=int, default=512,
+        help="Generation budget for MATH (default 512). GSM8K and ARC use 256.",
+    )
+    args = parser.parse_args()
+
+    config = Config(
+        max_new_tokens_math=args.math_max_new_tokens,
+        batch_size=args.batch_size,
+    )
+    DATASETS = list(args.datasets)
+    print(f"\nDatasets this run: {', '.join(DATASETS)}")
 
     print("=" * 70)
     print("Layer Sensitivity Profiler: Finding Critical Cognitive Bottlenecks")
@@ -638,10 +709,14 @@ def main():
         "baselines": {},
         "flipped_indices": {},
         "layer_sensitivity": {
-            "attention": {ds: {} for ds in ["gsm8k", "arc", "math"]},
-            "mlp": {ds: {} for ds in ["gsm8k", "arc", "math"]},
+            "attention": {ds: {} for ds in DATASETS},
+            "mlp": {ds: {} for ds in DATASETS},
         },
     }
+    results["config"]["max_new_tokens"] = {
+        ds: tokens_for(ds, config) for ds in DATASETS
+    }
+    results["config"]["batch_size"] = {ds: config.batch_size for ds in DATASETS}
 
     # =========================================================================
     # PHASE 0: Load Datasets
@@ -650,10 +725,13 @@ def main():
     print("PHASE 0: Loading Datasets")
     print(f"{'='*70}")
 
+    _loaders = {
+        "gsm8k": load_gsm8k,
+        "arc": load_arc_challenge,
+        "math": load_math,
+    }
     all_examples = {
-        "gsm8k": load_gsm8k(config.num_examples_per_dataset),
-        "arc": load_arc_challenge(config.num_examples_per_dataset),
-        "math": load_math(config.num_examples_per_dataset),
+        ds: _loaders[ds](config.num_examples_per_dataset) for ds in DATASETS
     }
 
     for ds, examples in all_examples.items():
@@ -673,7 +751,7 @@ def main():
         print(f"\n  Testing {ds_name}...")
         res = run_inference_on_subset(
             model, tokenizer, examples,
-            config.batch_size, config.max_new_tokens
+            config.batch_size, tokens_for(ds_name, config)
         )
         fp16_results[ds_name] = res
         acc = calculate_recovery_rate(res)
@@ -696,7 +774,7 @@ def main():
         print(f"\n  Testing {ds_name}...")
         res = run_inference_on_subset(
             model, tokenizer, examples,
-            config.batch_size, config.max_new_tokens
+            config.batch_size, tokens_for(ds_name, config)
         )
         int4_results[ds_name] = res
         acc = calculate_recovery_rate(res)
@@ -774,14 +852,14 @@ def main():
         )
 
         # Test on flipped examples for each dataset
-        for ds_name in ["gsm8k", "arc", "math"]:
+        for ds_name in DATASETS:
             if not flipped_examples[ds_name]:
                 results["layer_sensitivity"]["attention"][ds_name][str(layer_idx)] = 0.0
                 continue
 
             res = run_inference_on_subset(
                 model, tokenizer, flipped_examples[ds_name],
-                config.batch_size, config.max_new_tokens
+                config.batch_size, tokens_for(ds_name, config)
             )
             recovery_rate = calculate_recovery_rate(res)
             results["layer_sensitivity"]["attention"][ds_name][str(layer_idx)] = recovery_rate
@@ -791,9 +869,10 @@ def main():
 
         attn_rates = [
             results["layer_sensitivity"]["attention"][ds][str(layer_idx)]
-            for ds in ["gsm8k", "arc", "math"]
+            for ds in DATASETS
         ]
-        print(f"      Recovery: GSM8K={attn_rates[0]:.1%}, ARC={attn_rates[1]:.1%}, MATH={attn_rates[2]:.1%}")
+        print("      Recovery: " + ", ".join(
+            f"{ds.upper()}={r:.1%}" for ds, r in zip(DATASETS, attn_rates)))
 
         # ---------------------------------------------------------------------
         # Test MLP
@@ -807,14 +886,14 @@ def main():
         )
 
         # Test on flipped examples for each dataset
-        for ds_name in ["gsm8k", "arc", "math"]:
+        for ds_name in DATASETS:
             if not flipped_examples[ds_name]:
                 results["layer_sensitivity"]["mlp"][ds_name][str(layer_idx)] = 0.0
                 continue
 
             res = run_inference_on_subset(
                 model, tokenizer, flipped_examples[ds_name],
-                config.batch_size, config.max_new_tokens
+                config.batch_size, tokens_for(ds_name, config)
             )
             recovery_rate = calculate_recovery_rate(res)
             results["layer_sensitivity"]["mlp"][ds_name][str(layer_idx)] = recovery_rate
@@ -824,9 +903,10 @@ def main():
 
         mlp_rates = [
             results["layer_sensitivity"]["mlp"][ds][str(layer_idx)]
-            for ds in ["gsm8k", "arc", "math"]
+            for ds in DATASETS
         ]
-        print(f"      Recovery: GSM8K={mlp_rates[0]:.1%}, ARC={mlp_rates[1]:.1%}, MATH={mlp_rates[2]:.1%}")
+        print("      Recovery: " + ", ".join(
+            f"{ds.upper()}={r:.1%}" for ds, r in zip(DATASETS, mlp_rates)))
 
         # Memory status
         print(f"      GPU Memory: {get_gpu_memory_mb():.0f} MB")
@@ -848,7 +928,7 @@ def main():
     rankings = {"attention": {}, "mlp": {}}
 
     for component in ["attention", "mlp"]:
-        for ds_name in ["gsm8k", "arc", "math"]:
+        for ds_name in DATASETS:
             layer_scores = results["layer_sensitivity"][component][ds_name]
 
             # Sort by recovery rate (descending)
@@ -876,6 +956,43 @@ def main():
     print("SAVING RESULTS")
     print(f"{'='*70}")
 
+    # Merge with any previous run so datasets not swept this time survive.
+    if os.path.exists(config.output_file):
+        try:
+            with open(config.output_file) as f:
+                prev = json.load(f)
+        except json.JSONDecodeError as e:
+            print(f"  WARNING: existing output unreadable ({e}); writing fresh.")
+            prev = None
+        if prev:
+            carried = []
+            for ds in ("gsm8k", "arc", "math"):
+                if ds in DATASETS:
+                    continue
+                for comp in ("attention", "mlp"):
+                    old = prev.get("layer_sensitivity", {}).get(comp, {}).get(ds)
+                    if old:
+                        results["layer_sensitivity"][comp][ds] = old
+                    old_rank = prev.get("rankings", {}).get(comp, {}).get(ds)
+                    if old_rank:
+                        results["rankings"][comp][ds] = old_rank
+                for key in (f"{ds}_fp16", f"{ds}_4bit"):
+                    if key in prev.get("baselines", {}):
+                        results["baselines"][key] = prev["baselines"][key]
+                if ds in prev.get("flipped_indices", {}):
+                    results["flipped_indices"][ds] = prev["flipped_indices"][ds]
+                if old:
+                    carried.append(ds)
+            # preserve the token budget recorded for carried datasets
+            for field in ("max_new_tokens", "batch_size"):
+                prev_field = prev.get("config", {}).get(field)
+                if isinstance(prev_field, dict):
+                    for ds in carried:
+                        if ds in prev_field:
+                            results["config"][field][ds] = prev_field[ds]
+            if carried:
+                print(f"  Carried forward from previous run: {', '.join(sorted(carried))}")
+
     with open(config.output_file, "w") as f:
         json.dump(results, f, indent=2)
 
@@ -886,7 +1003,7 @@ def main():
     print("SUMMARY: Critical Layers by Dataset")
     print(f"{'='*70}")
 
-    for ds_name in ["gsm8k", "arc", "math"]:
+    for ds_name in DATASETS:
         print(f"\n  {ds_name.upper()}:")
         print(f"    Best Attention Layer: {rankings['attention'][ds_name][0]['layer']} "
               f"({rankings['attention'][ds_name][0]['recovery_rate']:.1%})")

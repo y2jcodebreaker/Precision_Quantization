@@ -1,6 +1,6 @@
-"""Generate Figure 1 hero/teaser for the EMNLP paper.
+"""Generate the Figure 1 hero/teaser.
 
-Three-panel narrative inspired by polished EMNLP teaser figures:
+Three-panel narrative:
 
   Panel 1 - The Problem
     A real Llama-3.1-8B prompt that NF4 quantization breaks.
@@ -8,26 +8,58 @@ Three-panel narrative inspired by polished EMNLP teaser figures:
 
   Panel 2 - The Diagnostic (centre, blue background)
     Restoration probe finds the inversion: Hessian sensitivity does not
-    predict functional importance (rho = -0.506).
+    predict functional importance (rho = -0.537).
     Layer stack on the left, key correlation in the centre, punchline
     at the bottom.
 
   Panel 3 - The Outcome
     Two stacked boxes comparing equal 6/32 FP16 budgets.
     Red box (HESS-6, current methods): picks dead-zone layers, 2.6%.
-    Green box (REST-6, ours): picks functional layers, 57.9%.
+    Green box (REST-6, ours): picks functional layers, 52.6%.
     Pill tags characterise each outcome.
 
-Output: emnlp_draft/figures/fig0_teaser.{png,pdf}
+Output: figures/fig0_teaser.{png,pdf}
 """
 
 from __future__ import annotations
 
 import os
 
+import json
+
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import FancyBboxPatch, Rectangle
+
+RANKING_PATHS = [
+    "sensitivity_ranking_comparison.json",
+    "results/llama/sensitivity_ranking_comparison.json",
+    "results/sensitivity_ranking_comparison.json",
+    os.path.expanduser("~/Downloads/sensitivity_ranking_comparison.json"),
+]
+
+
+def load_rank_pairs():
+    """Return (hessian_rank, restoration_rank, is_attention) for all 64 sub-layers.
+
+    The teaser scatter plots the real measurements, not an illustration; if the
+    ranking file cannot be found we raise rather than fall back to synthetic
+    points, so the figure can never silently misrepresent the data.
+    """
+    for path in RANKING_PATHS:
+        if os.path.exists(path):
+            with open(path) as f:
+                per_layer = json.load(f)["per_layer"]
+            h, r, attn = [], [], []
+            for key, v in per_layer.items():
+                h.append(v["hessian_rank"])
+                r.append(v["restoration_rank"])
+                attn.append(v["component"] == "attention")
+            return np.array(h), np.array(r), np.array(attn)
+    raise FileNotFoundError(
+        "sensitivity_ranking_comparison.json not found; searched: "
+        + ", ".join(RANKING_PATHS)
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -285,12 +317,11 @@ def draw_diagnostic_panel(ax, x0, y0, w, h):
         facecolor="white", edgecolor="#888888", linewidth=0.7, zorder=2,
     ))
 
-    rng = np.random.default_rng(7)
-    n = 64
-    xs = np.linspace(0, 1, n)
-    ys = 1.0 - xs + rng.normal(0, 0.13, n)
-    ys = np.clip(ys, 0, 1)
-    is_attn = np.arange(n) < 32
+    h_rank, r_rank, is_attn = load_rank_pairs()
+    n = len(h_rank)
+    # normalise both rank axes to [0, 1] for placement inside the panel box
+    xs = (h_rank - h_rank.min()) / (h_rank.max() - h_rank.min())
+    ys = (r_rank - r_rank.min()) / (r_rank.max() - r_rank.min())
 
     pxs = sx0 + xs * (sx1 - sx0)
     pys = scatter_y_bot + ys * scatter_h
@@ -308,7 +339,7 @@ def draw_diagnostic_panel(ax, x0, y0, w, h):
 
     # Scatter labels
     ax.text((sx0 + sx1) / 2, scatter_y_top + 0.10,
-            r"$\rho = -0.506$    (Hessian rank vs functional rank)",
+            r"$\rho = -0.537$    (Hessian rank vs functional rank)",
             ha="center", va="bottom", fontsize=8.0, fontweight="bold",
             color=COL_X)
     ax.text((sx0 + sx1) / 2, scatter_y_bot - 0.22,
@@ -383,9 +414,9 @@ def draw_outcome_panel(ax, x0, y0, w, h):
         subtitle="Restoration-guided  /  functional probing",
         layers_text="Protects: L13, L14 attention  +  L1, L6, L7, L31 MLP",
         layers_note="(spread across early-to-mid layers)",
-        result_pct="57.9%",
+        result_pct="52.6%",
         result_caption=r"ARC recovery   ($p{=}0.001$ vs.\ HESS-6)",
-        tags=[(r"$22\times$ recovery", COL_REST_EDGE),
+        tags=[(r"$20\times$ recovery", COL_REST_EDGE),
               ("Same budget", COL_REST_EDGE),
               (r"$\equiv$ FP16", COL_REST_EDGE)],
         fill=COL_REST_FILL, edge=COL_REST_EDGE,
@@ -468,7 +499,7 @@ def main():
              fontsize=15.5, fontweight="bold", color=COL_TEXT)
     fig.text(0.50, 0.925,
              "Same compute budget, wrong layers protected, "
-             r"$22\times$ less damage recovered.",
+             r"$20\times$ less damage recovered.",
              ha="center", va="top", fontsize=10.0,
              color=COL_MUTED, style="italic")
 
@@ -500,7 +531,7 @@ def main():
                                 mutation_scale=14), zorder=5)
 
     # Output
-    out_dir = os.path.join("emnlp_draft", "figures")
+    out_dir = "figures"
     os.makedirs(out_dir, exist_ok=True)
     png = os.path.join(out_dir, "fig0_teaser.png")
     pdf = os.path.join(out_dir, "fig0_teaser.pdf")

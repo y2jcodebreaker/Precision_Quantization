@@ -8,7 +8,7 @@ Style goals:
   - Dashed dark-red trend line
   - Clean legend in the top-right corner
 
-Output: emnlp_draft/figures/rho_scatter.png and .pdf
+Output: figures/rho_scatter.png and .pdf
 """
 
 from __future__ import annotations
@@ -173,7 +173,7 @@ def main():
         txt.set_color("#222222")
 
     # Output
-    out_dir = os.path.join("emnlp_draft", "figures")
+    out_dir = "figures"
     os.makedirs(out_dir, exist_ok=True)
     png = os.path.join(out_dir, "rho_scatter.png")
     pdf = os.path.join(out_dir, "rho_scatter.pdf")

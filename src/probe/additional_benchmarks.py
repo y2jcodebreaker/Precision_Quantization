@@ -2,7 +2,7 @@
 Additional Benchmarks: HellaSwag + MMLU Layer Sensitivity (Phase 19)
 =====================================================================
 
-HIGH PRIORITY fix for EMNLP reviewer concern W4.
+Addresses a reviewer concern about task-type coverage.
 
 Extends the layer sensitivity profiling to two non-math benchmarks:
   - HellaSwag: Commonsense reasoning (sentence completion)

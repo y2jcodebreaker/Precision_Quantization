@@ -22,7 +22,7 @@ pip install matplotlib numpy scipy
 python src/plots/generate_plots.py --results-dir results
 
 # 4. inspect figures/
-open figures/plot13_restoration_vs_hessian.png   # main rho = -0.506 scatter
+open figures/plot13_restoration_vs_hessian.png   # main rho = -0.537 scatter
 open figures/plot16_hessian_vs_restoration.png   # HESS-6 vs REST-6 (the core finding)
 ```
 
@@ -45,6 +45,24 @@ affected; accuracies and McNemar p-values are computed from them and are
 unchanged. The reducer and the plotting code now share one definition, and the
 derived `*_recovery_rate` fields in that JSON were recomputed from the arrays.
 
+### MATH generation budget
+
+An earlier version of both `layer_sensitivity_profiler.py` and
+`hessian_vs_restoration.py` generated at most 256 new tokens for every dataset.
+MATH solutions are long, so a response truncated before it emitted `\boxed{}`
+scored as wrong regardless of the model: FP16 MATH read 18.4% against NF4's
+19.4%, i.e. quantization appeared to *help*. Both scripts now give MATH a
+512-token budget (`--math-max-new-tokens`, default 512; GSM8K and ARC keep 256,
+which is ample for a `####` answer or a single letter) and share the
+`_normalize_math()` comparison used by `baseline_comparison.py`.
+
+Re-running MATH raised FP16 to 59.6% with 50 flipped examples (from 24), and
+strengthened the headline correlation from rho = -0.506 to **-0.537**; rho_MATH
+went from -0.255 (p = 0.042) to **-0.436** (p = 0.0003). GSM8K and ARC were not
+re-run — 256 tokens never truncated them — and are carried through unchanged.
+Each result block now records its own `max_new_tokens` and `batch_size`, so the
+protocol is stated in the artefact rather than inferred.
+
 ## Repository layout
 
 ```
@@ -66,7 +84,8 @@ derived `*_recovery_rate` fields in that JSON were recomputed from the arrays.
 │   │
 │   ├── mechanistic/                       <- Hessian-vs-functional analysis (Sec 4.6, 4.9)
 │   │   ├── layer_sensitivity_profiler.py     64-layer recovery sweep (Fig 2, App B)
-│   │   ├── sensitivity_ranking_comparison.py Hessian trace + rho = -0.506 (Fig 4, Sec 4.6)
+│   │   ├── sensitivity_ranking_comparison.py Hessian trace + rho = -0.537 (Fig 4, Sec 4.6)
+│   │   ├── refresh_ranking_from_heatmap.py   recompute restoration side after a re-run (CPU only)
 │   │   ├── hessian_vs_restoration.py         HESS-6 vs REST-6 head-to-head (Sec 4.9, Tab 3)
 │   │   ├── matched_budget_baselines.py       RAND-6 / EARLIEST-6-MLP controls (App J)
 │   │   ├── bootstrap_ci_tost.py              bootstrap CIs + TOST equivalence (Sec 4.4, 4.6, 4.9)
@@ -81,8 +100,9 @@ derived `*_recovery_rate` fields in that JSON were recomputed from the arrays.
 │   │
 │   └── plots/                             <- figure generation (no GPU required)
 │       ├── generate_plots.py                 reads results/*.json, writes figures/*.png
-│       ├── generate_teaser.py                Figure 0 (procedural; no JSON input)
-│       └── generate_rho_scatter.py           standalone rho scatter (procedural)
+│       ├── generate_teaser.py                Figure 1 teaser (reads sensitivity_ranking_comparison.json)
+│       ├── generate_rho_scatter.py           standalone rho scatter (procedural)
+│       └── generate_teaser_scatter.py        teaser's scatter panel, from real ranks
 │
 ├── results/                               <- shipped pre-computed JSON outputs
 │   ├── llama/                                LLaMA-3.1-8B-Instruct
@@ -110,7 +130,7 @@ Each JSON contains the per-example correctness arrays, McNemar inputs, and aggre
 | `llama/additional_benchmarks_report.json` | Section 4.5 (HellaSwag + MMLU contrast) |
 | `llama/patch_count_ablation_report.json` | Appendix C (patch count ablation) |
 | `llama/optimal_mixed_precision_report.json` | Appendix C (6/32 capstone) |
-| `llama/sensitivity_ranking_comparison.json` | Figure 4, Section 4.6 (ρ = −0.506) |
+| `llama/sensitivity_ranking_comparison.json` | Figure 4, Section 4.6 (ρ = −0.537) |
 | `llama/bidirectional_flip_report.json` | Appendix F (forward/reverse flips) |
 | `llama/hessian_vs_restoration.json` | **Table 3, Section 4.9 (HESS-6 vs REST-6, p = 0.001)** |
 | `mistral/mistral_replication_report.json` | Section 4.7 (cross-architecture) |
@@ -179,7 +199,7 @@ python src/mechanistic/baseline_comparison.py
 python src/mechanistic/bidirectional_flip_analysis.py
 
 # 5. Hessian inversion analysis — Sections 4.6, 4.9
-python src/mechanistic/sensitivity_ranking_comparison.py    # produces rho = -0.506
+python src/mechanistic/sensitivity_ranking_comparison.py    # produces rho = -0.537
 python src/mechanistic/hessian_vs_restoration.py            # HESS-6 vs REST-6
 
 # 6. cross-architecture replication — Section 4.7

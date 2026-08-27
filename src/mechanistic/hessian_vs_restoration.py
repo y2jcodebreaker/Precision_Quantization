@@ -83,8 +83,16 @@ class Config:
     seed: int = 42
     batch_size: int = 8
     max_new_tokens: int = 256
+    # MATH needs a larger generation budget than GSM8K/ARC: its solutions are
+    # long, and a response truncated before it emits \boxed{} is scored wrong
+    # regardless of the model. 512 matches the multi-seed protocol used
+    # elsewhere in the paper, keeping the two MATH regimes comparable.
+    max_new_tokens_math: int = 512
     output_dir: str = "results"
     output_file: str = os.path.join("results", "hessian_vs_restoration.json")
+    checkpoint_file: str = os.path.join(
+        "results", "hessian_vs_restoration_ckpt.json"
+    )
     # Phase 21 output for programmatic Hessian layer selection
     phase21_file: str = os.path.join(
         "results", "sensitivity_ranking_comparison.json"
@@ -198,7 +206,7 @@ def load_hessian_top_layers(cfg: Config) -> List[Tuple[str, int]]:
 # =============================================================================
 
 def load_gsm8k(n: int) -> List[Dict]:
-    ds = load_dataset("gsm8k", "main", split="test")
+    ds = load_dataset("openai/gsm8k", "main", split="test")
     return [
         {"index": i, "question": ex["question"], "answer": ex["answer"],
          "dataset": "gsm8k"}
@@ -251,6 +259,39 @@ def load_math(n: int) -> List[Dict]:
 # =============================================================================
 # Prompt formatting & answer extraction
 # =============================================================================
+
+def tokens_for(ds_name: str, cfg: Config) -> int:
+    """Generation budget for a dataset (MATH gets a larger one)."""
+    return cfg.max_new_tokens_math if ds_name == "math" else cfg.max_new_tokens
+
+
+def recovery_rate(fp_c: List[bool], nf_c: List[bool], cond_c: List[bool]) -> float:
+    """Fraction of quantization-flipped examples the condition restores.
+
+    Flipped = FP16 correct AND NF4 wrong. Conditioning the numerator on the
+    same set is what makes the rate a repair fraction rather than a count of
+    every example the condition happens to get right.
+    """
+    flipped = [(f, c) for f, n, c in zip(fp_c, nf_c, cond_c) if f and not n]
+    if not flipped:
+        return 0.0
+    return sum(1 for _, c in flipped if c) / len(flipped)
+
+
+def _normalize_math(answer: str) -> str:
+    """Normalize a MATH answer string for comparison.
+
+    Ported from baseline_comparison.py so Table 3 scores MATH the same way
+    Table 1 does; without it, `2\text{ cm}` and `2` compare unequal.
+    """
+    answer = answer.strip()
+    answer = re.sub(r"\\(?:text|mathrm|mathbf)\{([^}]+)\}", r"\1", answer)
+    answer = re.sub(r"\\(?:left|right|big|Big|bigg|Bigg)", "", answer)
+    answer = re.sub(r"\\,|\\;|\\:|\\!", "", answer)
+    answer = answer.replace("\\$", "$").replace("\\%", "%")
+    answer = re.sub(r"\s+", " ", answer).strip()
+    return answer
+
 
 def format_prompt(example: Dict) -> str:
     ds = example["dataset"]
@@ -316,9 +357,15 @@ def extract_answer(response: str, example: Dict) -> Optional[str]:
     if ds == "math":
         m = re.search(r"\\boxed\{([^}]+)\}", text)
         if m:
-            return m.group(1).strip()
-        m = re.search(r"answer\s+is[:\s]*(.+?)(?:\.|$)", text, re.IGNORECASE)
-        return m.group(1).strip() if m else None
+            return _normalize_math(m.group(1))
+        for pat in (
+            r"(?:the\s+)?(?:final\s+)?answer\s+is[:\s]*([^\n\.]+)",
+            r"=\s*([^\n]+?)\s*$",
+        ):
+            m = re.search(pat, text, re.IGNORECASE | re.MULTILINE)
+            if m:
+                return _normalize_math(m.group(1))
+        return None
     return None
 
 
@@ -331,7 +378,7 @@ def extract_ground_truth(example: Dict) -> str:
         return example["answer"]
     if ds == "math":
         m = re.search(r"\\boxed\{([^}]+)\}", example["solution"])
-        return m.group(1).strip() if m else ""
+        return _normalize_math(m.group(1)) if m else ""
     return ""
 
 
@@ -346,7 +393,18 @@ def check_correct(model_ans: Optional[str], gt: str, ds: str) -> bool:
     if ds == "arc":
         return model_ans.upper() == gt.upper()
     if ds == "math":
-        return model_ans.strip().lower() == gt.strip().lower()
+        m_norm = _normalize_math(model_ans)
+        t_norm = _normalize_math(gt)
+        if m_norm == t_norm:
+            return True
+        try:
+            return abs(
+                float(re.sub(r"[^\d.\-+]", "", m_norm))
+                - float(re.sub(r"[^\d.\-+]", "", t_norm))
+            ) < 1e-6
+        except (ValueError, TypeError):
+            pass
+        return m_norm.lower() == t_norm.lower()
     return model_ans == gt
 
 
@@ -537,27 +595,6 @@ def accuracy(results: List[Dict]) -> float:
 # Stats-only mode (no GPU inference)
 # =============================================================================
 
-def recovery_rate(fp_c, nf_c, cond_c) -> float:
-    """Fraction of forward-flipped examples that a condition answers correctly.
-
-    A forward-flipped example is one the FP16 model answers correctly and the
-    NF4 model answers incorrectly -- i.e. an item quantization demonstrably
-    broke. Both numerator and denominator are restricted to that set:
-
-        recovery = |FP16 right AND NF4 wrong AND cond right|
-                 / |FP16 right AND NF4 wrong|
-
-    NOTE: an earlier version of this function omitted the "FP16 right" term from
-    the numerator, which counted items FP16 also failed and inflated recovery.
-    The per-example arrays saved in the results JSON are the ground truth; this
-    function is the single definition used everywhere.
-    """
-    flipped = [(f, c) for f, n, c in zip(fp_c, nf_c, cond_c) if f and not n]
-    if not flipped:
-        return 0.0
-    return sum(1 for _, c in flipped if c) / len(flipped)
-
-
 def _recompute_ds_block(block: Dict[str, Any]) -> Dict[str, Any]:
     pe = block.get("per_example_correct")
     if not pe:
@@ -594,6 +631,52 @@ def _recompute_ds_block(block: Dict[str, Any]) -> Dict[str, Any]:
         },
         "per_example_correct": pe,
     }
+
+
+def _ckpt_fingerprint(cfg: Config) -> str:
+    """Identity of the run a checkpoint belongs to."""
+    return (
+        f"{cfg.model_name}|n={cfg.n_examples}|seed={cfg.seed}|"
+        f"tok={cfg.max_new_tokens}|tok_math={cfg.max_new_tokens_math}|"
+        f"surg={cfg.n_surgical_layers}"
+    )
+
+
+def load_checkpoint(path: str, cfg: Config) -> Dict[str, List[Dict]]:
+    """Load completed (condition, dataset) pairs from a previous run.
+
+    A checkpoint written under a different configuration is refused rather
+    than silently mixed with the current one.
+    """
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path) as f:
+            blob = json.load(f)
+    except json.JSONDecodeError as e:
+        logger.warning("Checkpoint unreadable (%s); starting from scratch.", e)
+        return {}
+
+    stored = blob.get("fingerprint")
+    current = _ckpt_fingerprint(cfg)
+    if stored != current:
+        raise RuntimeError(
+            f"Checkpoint at {path} was written under a different configuration.\n"
+            f"  checkpoint: {stored}\n"
+            f"  current   : {current}\n"
+            "Delete the checkpoint to start fresh, or restore the old settings."
+        )
+    done = blob.get("completed", {})
+    logger.info("Checkpoint loaded: %d completed pair(s)", len(done))
+    return done
+
+
+def save_checkpoint(path: str, cfg: Config, done: Dict[str, List[Dict]]) -> None:
+    """Write the checkpoint atomically so a kill mid-write cannot corrupt it."""
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump({"fingerprint": _ckpt_fingerprint(cfg), "completed": done}, f)
+    os.replace(tmp, path)
 
 
 def recompute_stats_from_json(json_path: str) -> None:
@@ -636,9 +719,20 @@ def main() -> None:
         help="Skip inference; recompute stats from saved per-example arrays in "
              "the existing results JSON. Requires a prior full run.",
     )
+    parser.add_argument(
+        "--datasets", nargs="+", default=["gsm8k", "arc", "math"],
+        choices=["gsm8k", "arc", "math"],
+        help="Datasets to evaluate this run. Datasets not listed keep their "
+             "existing values in the output JSON.",
+    )
+    parser.add_argument(
+        "--math-max-new-tokens", type=int, default=512,
+        help="Generation budget for MATH (default 512, matching the "
+             "multi-seed protocol). GSM8K and ARC always use 256.",
+    )
     args = parser.parse_args()
 
-    cfg = Config()
+    cfg = Config(max_new_tokens_math=args.math_max_new_tokens)
     os.makedirs(cfg.output_dir, exist_ok=True)
 
     if args.stats_only:
@@ -665,74 +759,101 @@ def main() -> None:
     logger.info("Restoration-guided     : %s", RESTORATION_LAYERS)
 
     # ── Load datasets ──────────────────────────────────────────────────────────
+    ds_names: List[str] = list(args.datasets)
+    logger.info("Datasets this run: %s", ", ".join(ds_names))
     logger.info("Loading datasets...")
-    all_examples = {
-        "gsm8k": load_gsm8k(cfg.n_examples),
-        "arc":   load_arc_challenge(cfg.n_examples),
-        "math":  load_math(cfg.n_examples),
+    loaders = {
+        "gsm8k": load_gsm8k,
+        "arc":   load_arc_challenge,
+        "math":  load_math,
     }
+    all_examples = {name: loaders[name](cfg.n_examples) for name in ds_names}
+
+    # ── Resume from checkpoint ────────────────────────────────────────────────
+    CONDITIONS = ("fp16", "nf4", "hessian", "restoration")
+    done = load_checkpoint(cfg.checkpoint_file, cfg)
+    pending: Dict[str, List[str]] = {
+        cond: [d for d in ds_names if f"{cond}:{d}" not in done]
+        for cond in CONDITIONS
+    }
+    for cond in CONDITIONS:
+        already = [d for d in ds_names if d not in pending[cond]]
+        if already:
+            logger.info("  resume: %s already done for %s",
+                        cond, ", ".join(already))
+
+    def evaluate(cond: str, model, tok) -> None:
+        """Run every pending dataset for one condition, checkpointing each."""
+        for ds_name in pending[cond]:
+            budget = tokens_for(ds_name, cfg)
+            logger.info("  %s %s (max_new_tokens=%d)...", cond, ds_name, budget)
+            res = run_inference(
+                model, tok, all_examples[ds_name], cfg.batch_size, budget
+            )
+            done[f"{cond}:{ds_name}"] = res
+            save_checkpoint(cfg.checkpoint_file, cfg, done)
+            logger.info("    acc = %.2f%%  [checkpointed]", accuracy(res) * 100)
+
+    tokenizer = None
 
     # ── FP16 baseline ──────────────────────────────────────────────────────────
-    logger.info("Evaluating FP16 baseline...")
-    fp16_model, tokenizer = load_fp16(cfg.model_name)
-    fp16_results: Dict[str, List[Dict]] = {}
-    for ds_name, examples in all_examples.items():
-        logger.info("  FP16 %s...", ds_name)
-        fp16_results[ds_name] = run_inference(
-            fp16_model, tokenizer, examples, cfg.batch_size, cfg.max_new_tokens
-        )
-        logger.info("    acc = %.2f%%", accuracy(fp16_results[ds_name]) * 100)
-    del fp16_model
-    aggressive_cleanup()
+    if pending["fp16"]:
+        logger.info("Evaluating FP16 baseline...")
+        fp16_model, tokenizer = load_fp16(cfg.model_name)
+        evaluate("fp16", fp16_model, tokenizer)
+        del fp16_model
+        aggressive_cleanup()
+    else:
+        logger.info("FP16 complete from checkpoint; skipping model load.")
 
-    # ── Cache FP16 weights ─────────────────────────────────────────────────────
-    fp16_cache = cache_fp16_weights(cfg.model_name, cfg.num_layers)
+    needs_surgery = bool(pending["hessian"] or pending["restoration"])
+    if pending["nf4"] or needs_surgery:
+        # ── Cache FP16 weights (only needed for the surgical conditions) ──────
+        fp16_cache = cache_fp16_weights(cfg.model_name, cfg.num_layers) \
+            if needs_surgery else None
 
-    # ── Load NF4 model (reused across conditions) ──────────────────────────────
-    logger.info("Loading NF4 model (shared across conditions)...")
-    nf4_model, _ = load_nf4(cfg.model_name)
+        logger.info("Loading NF4 model (shared across conditions)...")
+        nf4_model, nf4_tokenizer = load_nf4(cfg.model_name)
+        if tokenizer is None:
+            tokenizer = nf4_tokenizer
 
-    # ── NF4 baseline ──────────────────────────────────────────────────────────
-    logger.info("Evaluating NF4 baseline...")
-    nf4_results: Dict[str, List[Dict]] = {}
-    for ds_name, examples in all_examples.items():
-        logger.info("  NF4 %s...", ds_name)
-        nf4_results[ds_name] = run_inference(
-            nf4_model, tokenizer, examples, cfg.batch_size, cfg.max_new_tokens
-        )
-        logger.info("    acc = %.2f%%", accuracy(nf4_results[ds_name]) * 100)
+        # ── NF4 baseline ──────────────────────────────────────────────────────
+        if pending["nf4"]:
+            logger.info("Evaluating NF4 baseline...")
+            evaluate("nf4", nf4_model, tokenizer)
 
-    # ── Hessian-guided surgical model ─────────────────────────────────────────
-    logger.info("Evaluating Hessian-guided surgical (top-%d Hessian layers)...",
-                cfg.n_surgical_layers)
-    originals_h = transplant_layer_set(nf4_model, fp16_cache, hessian_layers, cfg.device)
-    hess_results: Dict[str, List[Dict]] = {}
-    for ds_name, examples in all_examples.items():
-        logger.info("  Hessian-surgical %s...", ds_name)
-        hess_results[ds_name] = run_inference(
-            nf4_model, tokenizer, examples, cfg.batch_size, cfg.max_new_tokens
-        )
-        logger.info("    acc = %.2f%%", accuracy(hess_results[ds_name]) * 100)
-    restore_layer_set(nf4_model, originals_h)
-    assert_nf4_clean(nf4_model, cfg.num_layers)
+        # ── Hessian-guided surgical model ─────────────────────────────────────
+        if pending["hessian"]:
+            logger.info(
+                "Evaluating Hessian-guided surgical (top-%d Hessian layers)...",
+                cfg.n_surgical_layers,
+            )
+            originals_h = transplant_layer_set(
+                nf4_model, fp16_cache, hessian_layers, cfg.device
+            )
+            evaluate("hessian", nf4_model, tokenizer)
+            restore_layer_set(nf4_model, originals_h)
+            assert_nf4_clean(nf4_model, cfg.num_layers)
 
-    # ── Restoration-guided surgical model ─────────────────────────────────────
-    logger.info("Evaluating Restoration-guided surgical (Phase 12 optimal)...")
-    originals_r = transplant_layer_set(
-        nf4_model, fp16_cache, RESTORATION_LAYERS, cfg.device
-    )
-    rest_results: Dict[str, List[Dict]] = {}
-    for ds_name, examples in all_examples.items():
-        logger.info("  Restoration-surgical %s...", ds_name)
-        rest_results[ds_name] = run_inference(
-            nf4_model, tokenizer, examples, cfg.batch_size, cfg.max_new_tokens
-        )
-        logger.info("    acc = %.2f%%", accuracy(rest_results[ds_name]) * 100)
-    restore_layer_set(nf4_model, originals_r)
-    assert_nf4_clean(nf4_model, cfg.num_layers)
+        # ── Restoration-guided surgical model ─────────────────────────────────
+        if pending["restoration"]:
+            logger.info("Evaluating Restoration-guided surgical (Phase 12 optimal)...")
+            originals_r = transplant_layer_set(
+                nf4_model, fp16_cache, RESTORATION_LAYERS, cfg.device
+            )
+            evaluate("restoration", nf4_model, tokenizer)
+            restore_layer_set(nf4_model, originals_r)
+            assert_nf4_clean(nf4_model, cfg.num_layers)
 
-    del nf4_model
-    aggressive_cleanup()
+        del nf4_model
+        aggressive_cleanup()
+    else:
+        logger.info("All NF4-based conditions complete from checkpoint.")
+
+    fp16_results = {d: done[f"fp16:{d}"] for d in ds_names}
+    nf4_results  = {d: done[f"nf4:{d}"] for d in ds_names}
+    hess_results = {d: done[f"hessian:{d}"] for d in ds_names}
+    rest_results = {d: done[f"restoration:{d}"] for d in ds_names}
 
     # ── Statistics ────────────────────────────────────────────────────────────
     output: Dict[str, Any] = {
@@ -746,7 +867,29 @@ def main() -> None:
         "results": {},
     }
 
-    for ds_name in ("gsm8k", "arc", "math"):
+    # Datasets not evaluated this run keep whatever the previous run recorded,
+    # so a targeted re-run (e.g. --datasets math) does not discard the others.
+    if os.path.exists(cfg.output_file):
+        try:
+            with open(cfg.output_file) as f:
+                output["results"] = json.load(f).get("results", {})
+            carried = [d for d in output["results"] if d not in ds_names]
+            for d in sorted(carried):
+                # Recompute rather than copy: an older file may hold recovery
+                # rates from a superseded metric, which would leave the output
+                # internally inconsistent with the datasets re-run here.
+                try:
+                    output["results"][d] = _recompute_ds_block(output["results"][d])
+                    logger.info("Carried forward (stats recomputed): %s", d)
+                except KeyError:
+                    logger.warning(
+                        "Carried forward AS-IS: %s has no per-example arrays, "
+                        "so its recovery rates could not be recomputed.", d
+                    )
+        except json.JSONDecodeError as e:
+            logger.warning("Existing output unreadable (%s); writing fresh.", e)
+
+    for ds_name in ds_names:
         fp_acc  = accuracy(fp16_results[ds_name])
         nf_acc  = accuracy(nf4_results[ds_name])
         h_acc   = accuracy(hess_results[ds_name])
@@ -758,7 +901,6 @@ def main() -> None:
         r_c   = [x["correct"] for x in rest_results[ds_name]]
 
         flipped = sum(1 for a, b in zip(fp_c, nf_c) if a and not b)
-
         h_recovery = recovery_rate(fp_c, nf_c, h_c)
         r_recovery = recovery_rate(fp_c, nf_c, r_c)
 
@@ -770,6 +912,7 @@ def main() -> None:
             "flipped_count": flipped,
             "hessian_recovery_rate": round(h_recovery, 4),
             "restoration_recovery_rate": round(r_recovery, 4),
+            "max_new_tokens": tokens_for(ds_name, cfg),
             "mcnemar": {
                 "rest_vs_nf4_p":  round(mcnemar_p(r_c, nf_c), 4),
                 "hess_vs_nf4_p":  round(mcnemar_p(h_c, nf_c), 4),

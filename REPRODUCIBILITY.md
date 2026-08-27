@@ -11,7 +11,7 @@ Assumes you are at the repo root and have followed the install instructions in `
 | Figure | What it shows | Producing script | Input JSON | Output |
 |---|---|---|---|---|
 | **Fig 1** (teaser) | Three-panel: Problem / Diagnostic / Outcome | `src/plots/generate_teaser.py` | none (procedural) | `figures/fig0_teaser.{png,pdf}` |
-| **Fig 4** (ρ scatter) | Hessian rank vs functional rank, ρ = −0.506 | `src/plots/generate_rho_scatter.py` *and* `src/plots/generate_plots.py` | `results/llama/sensitivity_ranking_comparison.json` | `figures/plot13_restoration_vs_hessian.png`, `figures/rho_scatter.{png,pdf}` |
+| **Fig 4** (ρ scatter) | Hessian rank vs functional rank, ρ = −0.537 | `src/plots/generate_rho_scatter.py` *and* `src/plots/generate_plots.py` | `results/llama/sensitivity_ranking_comparison.json` | `figures/plot13_restoration_vs_hessian.png`, `figures/rho_scatter.{png,pdf}` |
 | **Fig 2** (per-layer lines) | Per-layer recovery on GSM8K / ARC / MATH | `src/plots/generate_plots.py` | `results/llama/layer_sensitivity_heatmap.json` | `figures/plot5_layer_sensitivity_lines.png` |
 | **Fig 3** (cross-task matrix) | 5×3 patch-by-task interference matrix | `src/plots/generate_plots.py` | `results/llama/cross_task_interference_report.json` | `figures/plot7_cross_task_interference.png` |
 | **Fig 5** (multi-seed, App A) | 5-seed McNemar significance panels | `src/plots/generate_plots.py` | `results/llama/multi_seed_significance_report.json` | `figures/plot10_multi_seed_significance.png` |
